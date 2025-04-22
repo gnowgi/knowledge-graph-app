@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 
 export default function RelationTypeManager() {
@@ -13,8 +12,11 @@ export default function RelationTypeManager() {
 
   const fetchRelationTypes = () => {
     fetch('/api/relation-types')
-      .then(res => res.json())
-      .then(setRelationTypes);
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch relation types");
+        return res.json();
+      })
+      .then(setRelationTypes)
   };
 
   const handleAdd = async () => {
