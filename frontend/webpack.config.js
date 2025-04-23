@@ -1,3 +1,4 @@
+
 // knowledge-graph-app/frontend/webpack.config.js
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -9,7 +10,6 @@ module.exports = {
     filename: 'bundle.js'
   },
   mode: 'development',
-  devtool: 'source-map',
   resolve: {
     extensions: ['.js', '.jsx']
   },

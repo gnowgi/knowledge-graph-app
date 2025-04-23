@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
@@ -17,31 +18,16 @@ export default function GraphView() {
 
   useEffect(() => {
     fetch('/api/page/1/neighbors')
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch neighbors");
-        return res.json();
-      })
+      .then(res => res.json())
       .then(({ nodes, links }) => {
         setNodes(nodes);
         setLinks(links);
         drawGraph(nodes, links);
-      })
-      .catch(err => console.error(err));
+      });
 
-    fetch('/api/nodes')
-      .then(res => res.json())
-      .then(setAllNodes)
-      .catch(err => console.error(err));
-
-    fetch('/api/relation-types')
-      .then(res => res.json())
-      .then(setRelationTypes)
-      .catch(err => console.error(err));
-
-    fetch('/api/relations')
-      .then(res => res.json())
-      .then(setRelationList)
-      .catch(err => console.error(err));
+    fetch('/api/nodes').then(res => res.json()).then(setAllNodes);
+    fetch('/api/relation-types').then(res => res.json()).then(setRelationTypes);
+    fetch('/api/relations').then(res => res.json()).then(setRelationList);
   }, []);
 
   useEffect(() => {
@@ -235,7 +221,7 @@ export default function GraphView() {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             required
-            style={{ width: '100%', marginBottom: '8px' }}
+            style={{ width: '100%', padding: '6px', marginBottom: '8px' }}
           />
           <button type="submit" style={{ width: '100%' }}>Add Node with AI Summary</button>
         </form>
@@ -270,11 +256,7 @@ export default function GraphView() {
             ))}
           </select>
 
-          <button
-            type="button"
-            onClick={handleCreateRelation}
-            style={{ width: '100%' }}
-          >
+          <button type="button" onClick={handleCreateRelation} style={{ width: '100%' }}>
             Create Relation
           </button>
         </div>
