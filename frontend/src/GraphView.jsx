@@ -12,8 +12,8 @@ export default function GraphView() {
   const [relationTypeId, setRelationTypeId] = useState("");
   const [relationTypes, setRelationTypes] = useState([]);
   const [allNodes, setAllNodes] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [relationList, setRelationList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const expandedNodes = useRef(new Set());
 
   useEffect(() => {
@@ -155,6 +155,8 @@ export default function GraphView() {
       setNodes([...nodes, { id: node.id, label: node.label }]);
       setSelectedNode(node);
       setNewTitle("");
+      alert(`Node added: ${node.label}`);
+      fetch('/api/nodes').then(res => res.json()).then(setAllNodes);
     } else {
       const msg = await res.json();
       alert(msg.error || "Node creation failed.");
@@ -181,12 +183,12 @@ export default function GraphView() {
       setRelationTargetId("");
       setRelationTypeId("");
       expandNode(selectedNode.id);
+      fetch('/api/relations').then(res => res.json()).then(setRelationList);
     } else {
       alert("Failed to create relation.");
     }
   };
 
-  
   const handleDeleteRelation = async (id) => {
     if (!window.confirm("Are you sure you want to delete this relation?")) return;
     const res = await fetch(`/api/relation/${id}`, { method: "DELETE" });
@@ -195,6 +197,21 @@ export default function GraphView() {
       setLinks(links.filter(l => l.id !== id));
     } else {
       alert("Failed to delete relation.");
+    }
+  };
+
+  const handleDeleteNode = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this node?")) return;
+    const res = await fetch(`/api/node/${id}`, { method: "DELETE" });
+    if (res.status === 409) {
+      alert("Cannot delete: node is linked to other nodes.");
+    } else if (res.ok) {
+      setAllNodes(allNodes.filter(n => n.id !== id));
+      setNodes(nodes.filter(n => n.id !== id));
+      setLinks(links.filter(l => l.source.id !== id && l.target.id !== id));
+      if (selectedNode?.id === id) setSelectedNode(null);
+    } else {
+      alert("Failed to delete node.");
     }
   };
 
@@ -236,12 +253,11 @@ export default function GraphView() {
             style={{ width: '100%', marginBottom: '8px' }}
           >
             <option value="">Select...</option>
-	      {allNodes
-	       .filter(n => selectedNode && n.id !== selectedNode.id)
-	       .map(n => (
-		   <option key={n.id} value={n.id}>{n.label}</option>
-	       ))}
-
+            {[...allNodes].sort((a, b) => b.id - a.id)
+              .filter(n => selectedNode && n.id !== selectedNode.id)
+              .map(n => (
+                <option key={n.id} value={n.id}>{n.label}</option>
+              ))}
           </select>
 
           <label>Relation Type:</label>
@@ -271,7 +287,7 @@ export default function GraphView() {
           style={{ width: '100%', marginBottom: '8px' }}
         />
         <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-          {allNodes
+          {[...allNodes].sort((a, b) => b.id - a.id)
             .filter(n => n.label.toLowerCase().includes(searchQuery.toLowerCase()))
             .map(n => (
               <div
@@ -279,29 +295,42 @@ export default function GraphView() {
                 style={{
                   padding: '4px',
                   cursor: 'pointer',
-                  backgroundColor: selectedNode?.id === n.id ? '#eef' : 'transparent'
+                  backgroundColor: selectedNode?.id === n.id ? '#eef' : 'transparent',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}
                 onClick={() => {
                   setSelectedNode(n);
                   expandNode(n.id);
                 }}
               >
-                {n.label}
+                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <span>{n.label}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteNode(n.id);
+                    }}
+                    style={{ marginLeft: '8px' }}
+                  >
+                    🗑
+                  </button>
+                </div>
               </div>
             ))}
         </div>
-      
+
         <hr />
         <h4>All Propositions</h4>
         <div style={{ maxHeight: '200px', overflowY: 'auto', fontSize: '0.9em' }}>
-          {relationList.map(r => (
+          {[...relationList].sort((a, b) => b.id - a.id).map(r => (
             <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
               <span>{r.source_label} {r.label} {r.target_label}</span>
               <button onClick={() => handleDeleteRelation(r.id)} style={{ marginLeft: '10px' }}>🗑</button>
             </div>
           ))}
         </div>
-
       </div>
       <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1 }} />
     </div>
