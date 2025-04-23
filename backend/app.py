@@ -17,21 +17,19 @@ def create_node():
     title = data["title"].strip()
     normalized_title = title.lower()
 
-    conn = sqlite3.connect(config.DB_PATH)
-    cur = conn.cursor()
+    try:
+        with sqlite3.connect(config.DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM pages WHERE LOWER(title) = ?", (normalized_title,))
+            if cur.fetchone():
+                return jsonify({"error": "Node with this title already exists."}), 409
 
-    cur.execute("SELECT id FROM pages WHERE LOWER(title) = ?", (normalized_title,))
-    if cur.fetchone():
-        conn.close()
-        return jsonify({"error": "Node with this title already exists."}), 409
-
-    summary = generate_summary(title)
-    cur.execute("INSERT INTO pages (title, summary) VALUES (?, ?)", (title, summary))
-    page_id = cur.lastrowid
-    conn.commit()
-    conn.close()
-
-    return jsonify({"id": page_id, "label": title, "summary": summary})
+            summary = generate_summary(title)
+            cur.execute("INSERT INTO pages (title, summary) VALUES (?, ?)", (title, summary))
+            page_id = cur.lastrowid
+            return jsonify({"id": page_id, "label": title, "summary": summary})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/nodes", methods=["GET"])
