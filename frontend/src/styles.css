@@ -1,0 +1,142 @@
+/* General layout */
+body, html {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f9f9f9;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  padding: 16px 0 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+.app-header-logo {
+  height: 40px;
+  margin-right: 16px;
+}
+.app-header-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.tabs-bar {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  background: #f0f0f0;
+}
+.tabs-bar button {
+  margin-right: 10px;
+}
+
+.sidebar {
+  width: 300px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-right: 1px solid #ddd;
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.sidebar-tabs button {
+  flex: 1;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  font-size: 1em;
+  cursor: pointer;
+}
+.sidebar-tabs .active {
+  background: #dde;
+  border-bottom: 2px solid #69b3a2;
+}
+
+.node-list, .prop-list {
+  overflow-y: auto;
+  font-size: 1em;
+}
+.node-list {
+  height: calc(100vh - 260px);
+}
+.prop-list {
+  height: calc(100vh - 220px);
+}
+
+.node-list-item {
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  transition: background 0.2s;
+}
+.node-list-item.selected {
+  background: #eef;
+}
+.node-list-item .actions {
+  display: flex;
+  gap: 4px;
+}
+
+.edit-node-form {
+  margin-top: 4px;
+  background: #f5f5f5;
+  padding: 6px;
+  border-radius: 4px;
+}
+.edit-node-form input,
+.edit-node-form textarea {
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 1em;
+}
+.edit-node-form textarea {
+  resize: vertical;
+}
+.edit-node-form .form-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.knowledge-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0;
+  justify-content: center;
+}
+.knowledge-form input,
+.knowledge-form select {
+  min-width: 120px;
+  font-size: 1em;
+  padding: 4px;
+}
+.knowledge-form button {
+  font-size: 1em;
+  padding: 6px 12px;
+}
+
+/* GraphView node details */
+.node-details-title {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 12px 0;
+}
