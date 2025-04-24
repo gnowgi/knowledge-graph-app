@@ -1,0 +1,29 @@
+relation_name,inverse_name,description,transitive,symmetric
+is part of,has part,Used for part-whole relationships (e.g. cell is part of tissue),true,false
+is type of,has type,Used for class-subclass or type relationships (e.g. dog is type of animal),true,false
+is instance of,has instance,Used for specific examples (e.g. Paris is instance of city),false,false
+is cause of,is caused by,Used for causal relationships (e.g. virus is cause of disease),false,false
+is effect of,has effect,Used for effects or consequences (e.g. pollution is effect of industry),false,false
+is property of,has property,Used for attributes or features (e.g. red is property of apple),false,false
+is member of,has member,Used for group membership (e.g. John is member of team),false,false
+is located in,contains,Used for spatial or organizational containment (e.g. heart is located in chest),false,false
+is connected to,is connected to,Used for connections (symmetric, e.g. neuron is connected to neuron),false,true
+is adjacent to,is adjacent to,Used for adjacency (symmetric, e.g. France is adjacent to Spain),false,true
+is similar to,is similar to,Used for similarity (symmetric, e.g. whale is similar to dolphin),false,true
+is different from,is different from,Used for difference (symmetric, e.g. cat is different from dog),false,true
+is responsible for,is responsibility of,Used for roles or duties (e.g. teacher is responsible for class),false,false
+is related to,is related to,Used for general association (symmetric, e.g. math is related to physics),false,true
+is influenced by,influences,Used for influence (e.g. climate is influenced by sun),false,false
+is prerequisite for,has prerequisite,Used for requirements (e.g. algebra is prerequisite for calculus),true,false
+is example of,has example,Used for illustration (e.g. apple is example of fruit),false,false
+is synonym of,is synonym of,Used for synonyms (symmetric, e.g. big is synonym of large),false,true
+is antonym of,is antonym of,Used for antonyms (symmetric, e.g. hot is antonym of cold),false,true
+is owned by,owns,Used for ownership (e.g. book is owned by library),false,false
+is made of,has component,Used for composition (e.g. table is made of wood),false,false
+is step of,has step,Used for process steps (e.g. boiling is step of cooking),true,false
+is author of,has author,Used for authorship (e.g. Shakespeare is author of Hamlet),false,false
+is parent of,is child of,Used for family or tree structures (e.g. Alice is parent of Bob),false,false
+is teacher of,is student of,Used for education (e.g. Dr. Smith is teacher of Alice),false,false
+is predecessor of,is successor of,Used for sequences (e.g. Monday is predecessor of Tuesday),true,false
+is source of,has source,Used for sources (e.g. Nile is source of water),false,false
+is target of,has target,Used for targets (e.g. Mars is target of mission),false,false

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import NodeProperties from './NodeProperties'; // Import the NodeProperties component
 
 export default function GraphView({ relationRefreshKey }) {
   const svgRef = useRef();
@@ -48,51 +49,63 @@ export default function GraphView({ relationRefreshKey }) {
     svg.attr('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
       .attr('preserveAspectRatio', 'xMinYMin meet');
 
+    // Arrow marker for links (adjusted for rectangles, larger and more visible)
     svg.append('defs').append('marker')
       .attr('id', 'arrow')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 18)
+      .attr('viewBox', '0 -7 20 14')
+      .attr('refX', 38) // further out for rectangle nodes
       .attr('refY', 0)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
+      .attr('markerWidth', 18)
+      .attr('markerHeight', 18)
       .attr('orient', 'auto')
       .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('d', 'M0,-7L20,0L0,7')
       .attr('fill', '#aaa');
 
-    // Place the force center at the top-left of the visible area, below the form
-    const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id(d => d.id).distance(120))
+    // --- Label nodes for repulsion ---
+    // For each link, create a virtual label node
+    const labelNodes = links.map((l, i) => ({ id: `label-${i}`, link: l, x: 0, y: 0 }));
+    // Link each label node to both source and target of its link
+    const labelLinks = links.flatMap((l, i) => [
+      { source: l.source, target: `label-${i}` },
+      { source: l.target, target: `label-${i}` }
+    ]);
+
+    // Add label nodes to simulation for repulsion and keep them near the link midpoint
+    const simulation = d3.forceSimulation(nodes.concat(labelNodes))
+      .force('link', d3.forceLink(links).id(d => d.id).distance(220)) // Increased from 120 to 220
+      .force('labelLink', d3.forceLink(labelLinks).id(d => typeof d === 'object' ? d.id : d).distance(0).strength(1))
       .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(sidebarWidth, headerHeight + formHeight)); // below form
+      .force('labelRepel', d3.forceManyBody().strength(d => (typeof d.id === 'string' && d.id.startsWith('label-')) ? -200 : 0))
+      .force('center', d3.forceCenter(sidebarWidth, headerHeight + formHeight));
 
     // Draw links: lines for direct, arcs for inferred
     const linkGroup = svg.append('g').attr('stroke', '#aaa');
     const directLinks = links.filter(l => !l._inferred);
     const inferredLinks = links.filter(l => l._inferred);
 
-    // Direct links as lines
-    const link = linkGroup.selectAll('line')
+    // Draw tapered edges for direct links
+    const link = linkGroup.selectAll('path.tapered-link')
       .data(directLinks)
-      .enter().append('line')
-      .attr('marker-end', 'url(#arrow)');
+      .enter().append('path')
+      .attr('class', 'tapered-link')
+      .attr('fill', '#aaa');
 
-    // Inferred links as arcs (SVG paths)
-    const arc = linkGroup.selectAll('path')
+    // Inferred links as tapered arcs (SVG paths)
+    const arc = linkGroup.selectAll('path.tapered-arc')
       .data(inferredLinks)
       .enter().append('path')
-      .attr('stroke', '#d17')
-      .attr('fill', 'none')
-      .attr('marker-end', 'url(#arrow)');
+      .attr('class', 'tapered-arc')
+      .attr('fill', '#7ecbff'); // Light blue for inverse links
 
-    // Draw link labels
+    // Draw link labels using label nodes
     const linkLabel = svg.append('g')
       .selectAll('text')
-      .data(links)
+      .data(labelNodes)
       .enter().append('text')
-      .attr('font-size', 14) // Match sidebar font size
-      .attr('fill', d => d._inferred ? '#d17' : '#333')
-      .text(d => d.label);
+      .attr('font-size', 14)
+      .attr('fill', d => d.link._inferred ? '#3399cc' : '#333') // Light blue for inverse link labels
+      .text(d => d.link.label);
 
     // Draw nodes as groups (rect + text + pin icon if pinned)
     const nodeGroup = svg.append('g')
@@ -117,33 +130,33 @@ export default function GraphView({ relationRefreshKey }) {
     // For each node, append a text element to measure its width
     nodeGroup.append('text')
       .attr('font-size', 14)
-      .attr('fill', '#222')
+      .attr('fill', '#f5f5f5') // Light grey for better contrast on green
       .attr('y', 0)
       .attr('x', 0)
       .attr('dominant-baseline', 'middle')
       .attr('text-anchor', 'middle')
       .text(d => d.label)
       .each(function(d) {
-        // Store text width for each node
         d.textWidth = this.getBBox().width;
       });
 
     // Draw rectangles sized to text
     nodeGroup.insert('rect', 'text')
-      .attr('rx', 12)
-      .attr('ry', 12)
+      .attr('rx', d => d.is_instance ? 0 : 12)
+      .attr('ry', d => d.is_instance ? 0 : 12)
       .attr('x', d => -((d.textWidth || 60) / 2 + 10))
       .attr('y', -18)
       .attr('width', d => (d.textWidth || 60) + 20)
       .attr('height', 36)
-      .attr('fill', '#69b3a2')
+      .attr('fill', '#f5f5f5') // Light grey background for node box
       .attr('stroke', '#333')
       .attr('stroke-width', 1.5);
 
     // Center text in the rect
     nodeGroup.select('text')
       .attr('x', 0)
-      .attr('y', 0);
+      .attr('y', 0)
+      .attr('fill', '#222'); // Black text for node label
 
     // Add pin icon for pinned nodes
     nodeGroup.each(function(d) {
@@ -161,50 +174,87 @@ export default function GraphView({ relationRefreshKey }) {
 
     // When drawing, offset all elements by sidebarWidth and headerHeight
     simulation.on('tick', () => {
-      // Direct links as lines
-      link
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y);
-      // Inferred links as arcs
-      arc.attr('d', d => {
-        const dx = d.target.x - d.source.x;
-        const dy = d.target.y - d.source.y;
-        const dr = Math.sqrt(dx * dx + dy * dy) * 1.2; // arc radius
-        // Sweep flag 0 for one direction, 1 for the other (to avoid overlap if both directions exist)
-        const sweep = 1;
-        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,${sweep} ${d.target.x},${d.target.y}`;
+      // Recalculate label node positions to follow the edge
+      labelNodes.forEach(labelNode => {
+        const l = labelNode.link;
+        if (l._inferred) {
+          // For arcs: use arc midpoint (with offset)
+          const sx = l.source.x, sy = l.source.y;
+          const tx = l.target.x, ty = l.target.y;
+          const mx = (sx + tx) / 2;
+          const my = (sy + ty) / 2;
+          const dx = tx - sx, dy = ty - sy;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          const px = -dy / len, py = dx / len;
+          const arcHeight = 0.4 * len;
+          labelNode.x = mx + px * arcHeight;
+          labelNode.y = my + py * arcHeight;
+        } else {
+          // For direct: use straight midpoint
+          labelNode.x = (l.source.x + l.target.x) / 2;
+          labelNode.y = (l.source.y + l.target.y) / 2;
+        }
       });
-      // Link labels
+      // Tapered direct links
+      link.attr('d', d => {
+        // Source and target coordinates
+        const sx = d.source.x, sy = d.source.y;
+        const tx = d.target.x, ty = d.target.y;
+        // Direction vector
+        const dx = tx - sx, dy = ty - sy;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) return '';
+        // Perpendicular vector (normalized)
+        const px = -dy / len, py = dx / len;
+        // Thickness at source and target
+        const thick = 12, thin = 2;
+        // Points for the polygon
+        const s1x = sx + px * thick / 2, s1y = sy + py * thick / 2;
+        const s2x = sx - px * thick / 2, s2y = sy - py * thick / 2;
+        const t1x = tx + px * thin / 2, t1y = ty + py * thin / 2;
+        const t2x = tx - px * thin / 2, t2y = ty - py * thin / 2;
+        return `M${s1x},${s1y} L${t1x},${t1y} L${t2x},${t2y} L${s2x},${s2y} Z`;
+      });
+      // Tapered arcs for inferred links
+      arc.attr('d', d => {
+        // Source and target coordinates
+        const sx = d.source.x, sy = d.source.y;
+        const tx = d.target.x, ty = d.target.y;
+        // Midpoint for arc
+        const mx = (sx + tx) / 2;
+        const my = (sy + ty) / 2;
+        // Perpendicular for arc control point
+        const dx = tx - sx, dy = ty - sy;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) return '';
+        const px = -dy / len, py = dx / len;
+        const arcHeight = 0.4 * len; // arc height factor
+        // Arc control point
+        const cx = mx + px * arcHeight;
+        const cy = my + py * arcHeight;
+        // Tapered width
+        const thick = 12, thin = 2;
+        // Offset at source and target (perpendicular to tangent)
+        // Tangent at source: direction to control point
+        const t1x = cx - sx, t1y = cy - sy;
+        const t1len = Math.sqrt(t1x * t1x + t1y * t1y);
+        const t1px = -t1y / t1len, t1py = t1x / t1len;
+        // Tangent at target: direction from control point
+        const t2x = tx - cx, t2y = ty - cy;
+        const t2len = Math.sqrt(t2x * t2x + t2y * t2y);
+        const t2px = -t2y / t2len, t2py = t2x / t2len;
+        // Four points: source left/right, target left/right
+        const s1x = sx + t1px * thick / 2, s1y = sy + t1py * thick / 2;
+        const s2x = sx - t1px * thick / 2, s2y = sy - t1py * thick / 2;
+        const t1x2 = tx + t2px * thin / 2, t1y2 = ty + t2py * thin / 2;
+        const t2x2 = tx - t2px * thin / 2, t2y2 = ty - t2py * thin / 2;
+        // Path: move to s1, quadratic to t1, line to t2, quadratic back to s2, close
+        return `M${s1x},${s1y} Q${cx},${cy} ${t1x2},${t1y2} L${t2x2},${t2y2} Q${cx},${cy} ${s2x},${s2y} Z`;
+      });
+      // Link labels: use label node positions
       linkLabel
-        .attr('x', d => {
-          if (d._inferred) {
-            // Place label at arc midpoint
-            const mx = (d.source.x + d.target.x) / 2;
-            const my = (d.source.y + d.target.y) / 2;
-            // Offset label perpendicular to the link
-            const dx = d.target.x - d.source.x;
-            const dy = d.target.y - d.source.y;
-            const norm = Math.sqrt(dx * dx + dy * dy);
-            const offset = 18;
-            return mx + offset * (-dy / norm);
-          } else {
-            return (d.source.x + d.target.x) / 2;
-          }
-        })
-        .attr('y', d => {
-          if (d._inferred) {
-            const mx = (d.source.y + d.target.y) / 2;
-            const dx = d.target.x - d.source.x;
-            const dy = d.target.y - d.source.y;
-            const norm = Math.sqrt(dx * dx + dy * dy);
-            const offset = 18;
-            return mx + offset * (dx / norm);
-          } else {
-            return (d.source.y + d.target.y) / 2;
-          }
-        });
+        .attr('x', d => d.x)
+        .attr('y', d => d.y);
       // Node positions
       nodeGroup.attr('transform', d => `translate(${d.x},${d.y})`);
       // Update pin icon position if pinned
@@ -426,11 +476,13 @@ export default function GraphView({ relationRefreshKey }) {
   };
 
   return (
-    <div style={{ width: '100%', height: 'calc(100% - 50px)', display: 'flex' }}>
+    <div style={{ width: '100%', height: 'calc(100% - 45px)', display: 'flex' }}>
       <div className="sidebar">
         {selectedNode ? (
           <div>
             <h3 className="node-details-title">{selectedNode.label}</h3>
+            {/* Display node properties */}
+            <NodeProperties nodeId={selectedNode.id} />
             {selectedNode.summary && <><strong>Summary:</strong> <p>{selectedNode.summary}</p></>}
           </div>
         ) : (
@@ -474,7 +526,7 @@ export default function GraphView({ relationRefreshKey }) {
                     onClick={() => showNodeAndNeighbors(n.id)}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                      <span>{n.label}</span>
+                      <span style={n.is_instance ? { textDecoration: 'underline', textDecorationThickness: '2px' } : {}}>{n.label}</span>
                       <div className="actions">
                         <button
                           onClick={e => {
@@ -551,7 +603,7 @@ export default function GraphView({ relationRefreshKey }) {
           </div>
         )}
       </div>
-      <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1 }} />
+      <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1, marginTop: 45 }} />
     </div>
   );
 }
