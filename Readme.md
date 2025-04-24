@@ -1,4 +1,4 @@
-# Knowledge Map App
+# Knowledge Builder
 
 **Version**: 0.1  
 **License**: AGPLv3
