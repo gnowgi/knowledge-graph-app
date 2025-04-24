@@ -33,6 +33,12 @@ body, html {
 .tabs-bar button {
   margin-right: 10px;
 }
+.tabs-bar button.active-tab {
+  background: #cce6ff;
+  color: #222;
+  font-weight: bold;
+  border-radius: 6px;
+}
 
 .sidebar {
   width: 300px;

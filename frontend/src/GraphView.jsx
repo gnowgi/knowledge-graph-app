@@ -484,6 +484,39 @@ export default function GraphView({ relationRefreshKey }) {
             {/* Display node properties */}
             <NodeProperties nodeId={selectedNode.id} />
             {selectedNode.summary && <><strong>Summary:</strong> <p>{selectedNode.summary}</p></>}
+            {/* Propositions involving this node (from relationList) */}
+            <div style={{ marginTop: 12 }}>
+              <strong>Propositions:</strong>
+              <ul style={{ paddingLeft: 18, margin: 0 }}>
+                {
+                  // Only show propositions where selectedNode is subject or object
+                  relationList.filter(r => r.source === selectedNode.id || r.target === selectedNode.id).length === 0 && (
+                    <li style={{ color: '#888' }}>No propositions found.</li>
+                  )
+                }
+                {
+                  relationList
+                    .filter(r => r.source === selectedNode.id || r.target === selectedNode.id)
+                    .map((r, idx) => {
+                      if (r.source === selectedNode.id) {
+                        // selected node is subject
+                        return (
+                          <li key={r.id || idx}>
+                            <span style={{ fontWeight: 500 }}>{selectedNode.label}</span> {r.label} {r.target_label}
+                          </li>
+                        );
+                      } else {
+                        // selected node is object
+                        return (
+                          <li key={r.id || idx}>
+                            {r.source_label} {r.label} <span style={{ fontWeight: 500 }}>{selectedNode.label}</span>
+                          </li>
+                        );
+                      }
+                    })
+                }
+              </ul>
+            </div>
           </div>
         ) : (
           <div>Select a Node or Proposition</div>
@@ -592,12 +625,15 @@ export default function GraphView({ relationRefreshKey }) {
         )}
         {sidebarTab === 'props' && (
           <div className="prop-list" style={{ fontSize: '0.9em' }}>
-            {[...relationList].sort((a, b) => b.id - a.id).map(r => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', cursor: 'pointer' }}
+            {relationList.map((r, idx) => (
+              <div key={r.id || `${r.source_label}->${r.label}->${r.target_label}->${idx}`}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', cursor: 'pointer' }}
                 onClick={() => showRelation(r)}
               >
                 <span>{r.source_label} {r.label} {r.target_label}</span>
-                <button onClick={e => { e.stopPropagation(); handleDeleteRelation(r.id); }} style={{ marginLeft: '10px' }}>🗑</button>
+                {r.id && (
+                  <button onClick={e => { e.stopPropagation(); handleDeleteRelation(r.id); }} style={{ marginLeft: '10px' }}>🗑</button>
+                )}
               </div>
             ))}
           </div>

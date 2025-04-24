@@ -1,7 +1,7 @@
 // RelationCreator.jsx: UI for subject–predicate–object relation creation
 import React, { useEffect, useState } from 'react';
 
-export default function RelationCreator({ onRelationCreated }) {
+export default function RelationCreator({ onRelationCreated, difficulty }) {
   const MODALITIES = [
     '', 'necessarily', 'possibly', 'allegedly', 'experimentally', 'historically', 'reportedly', 'theoretically', 'empirically'
   ];
@@ -98,20 +98,24 @@ export default function RelationCreator({ onRelationCreated }) {
       boxSizing: 'border-box',
       marginBottom: 24
     }}>
-      {/* Modality selector (outside main containers) */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 120, marginRight: 12 }}>
-        <label style={{ fontWeight: 500, marginBottom: 4 }}>Modality</label>
-        <select value={modality} onChange={e => setModality(e.target.value)}>
-          {MODALITIES.map(m => <option key={m} value={m}>{m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Modality'}</option>)}
-        </select>
-      </div>
+      {/* Modality selector (only in advanced) */}
+      {difficulty === 'advanced' && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 120, marginRight: 12 }}>
+          <label style={{ fontWeight: 500, marginBottom: 4 }}>Modality</label>
+          <select value={modality} onChange={e => setModality(e.target.value)}>
+            {MODALITIES.map(m => <option key={m} value={m}>{m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Modality'}</option>)}
+          </select>
+        </div>
+      )}
       {/* Subject sub-container */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 240, background: '#eef6fa', borderRadius: 6, padding: 12, border: '1px solid #b5c9d6' }}>
         <label style={{ fontWeight: 500, marginBottom: 4 }}>Subject</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)}>
-            {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
-          </select>
+          {(difficulty === 'medium' || difficulty === 'advanced') && (
+            <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)}>
+              {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+            </select>
+          )}
           <input
             type="text"
             placeholder="Choose a subject"
@@ -139,9 +143,11 @@ export default function RelationCreator({ onRelationCreated }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 240, background: '#eef6fa', borderRadius: 6, padding: 12, border: '1px solid #b5c9d6' }}>
         <label style={{ fontWeight: 500, marginBottom: 4 }}>Object</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <select value={objectQuantifier} onChange={e => setObjectQuantifier(e.target.value)}>
-            {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
-          </select>
+          {(difficulty === 'medium' || difficulty === 'advanced') && (
+            <select value={objectQuantifier} onChange={e => setObjectQuantifier(e.target.value)}>
+              {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+            </select>
+          )}
           <input
             type="text"
             placeholder="Choose an object"

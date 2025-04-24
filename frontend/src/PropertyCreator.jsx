@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 const QUANTIFIERS = ['', 'all', 'some', 'none'];
 
-export default function PropertyCreator({ onPropertyAdded }) {
+export default function PropertyCreator({ onPropertyAdded, difficulty }) {
   const [allNodes, setAllNodes] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState('');
@@ -58,9 +58,11 @@ export default function PropertyCreator({ onPropertyAdded }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 240, background: '#eef6fa', borderRadius: 6, padding: 12, border: '1px solid #b5c9d6' }}>
         <label style={{ fontWeight: 500, marginBottom: 4 }}>Choose Subject</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)}>
-            {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
-          </select>
+          {(!difficulty || difficulty === 'easy') ? null : (
+            <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)}>
+              {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+            </select>
+          )}
           <select value={selectedNodeId} onChange={e => setSelectedNodeId(e.target.value)} style={{ minWidth: 120 }}>
             <option value=''>Choose Subject</option>
             {allNodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
