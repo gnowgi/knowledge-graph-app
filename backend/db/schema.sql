@@ -5,7 +5,8 @@ CREATE TABLE attributes (
     description TEXT,
     data_type TEXT NOT NULL, -- e.g. integer, float, string, boolean, date, array
     allowed_values TEXT,     -- comma-separated or JSON string for enums
-    unit TEXT
+    unit TEXT,
+    applicable_nodes TEXT    -- JSON array of page IDs (nodes that can have this attribute)
 );
 
 -- Pages (Nodes)

@@ -4,16 +4,40 @@ const DATA_TYPES = [
   'string', 'integer', 'float', 'boolean', 'date', 'array'
 ];
 
+// MultiSelect component for selecting multiple nodes
+function MultiSelectInput({ value, onChange, options, placeholder }) {
+  return (
+    <select
+      multiple
+      value={value}
+      onChange={e => {
+        const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+        onChange(selected);
+      }}
+      style={{ marginRight: 8, minWidth: 180 }}
+    >
+      <option disabled value="">{placeholder}</option>
+      {options.map(opt => (
+        <option key={opt.id} value={opt.id}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default function AttributeManager() {
   const [attributes, setAttributes] = useState([]);
+  const [nodes, setNodes] = useState([]);
   const [newAttr, setNewAttr] = useState({
-    name: '', description: '', data_type: 'string', allowed_values: '', unit: ''
+    name: '', description: '', data_type: 'string', allowed_values: '', unit: '', applicable_nodes: []
   });
   const [editId, setEditId] = useState(null);
-  const [editData, setEditData] = useState({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '' });
+  const [editData, setEditData] = useState({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '', applicable_nodes: [] });
 
   useEffect(() => {
     fetchAttributes();
+    fetchNodes();
   }, []);
 
   function fetchAttributes() {
@@ -22,15 +46,27 @@ export default function AttributeManager() {
       .then(setAttributes);
   }
 
+  function fetchNodes() {
+    fetch('/api/nodes')
+      .then(res => res.json())
+      .then(data => setNodes(data));
+  }
+
   async function handleAdd() {
     if (!newAttr.name.trim() || !newAttr.data_type) return;
+    const payload = {
+      ...newAttr,
+      applicable_nodes: Array.isArray(newAttr.applicable_nodes)
+        ? newAttr.applicable_nodes.map(id => Number(id))
+        : []
+    };
     const res = await fetch('/api/attribute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newAttr)
+      body: JSON.stringify(payload)
     });
     if (res.ok) {
-      setNewAttr({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '' });
+      setNewAttr({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '', applicable_nodes: [] });
       fetchAttributes();
     } else {
       alert('Error adding attribute.');
@@ -38,10 +74,16 @@ export default function AttributeManager() {
   }
 
   async function handleUpdate(id) {
+    const payload = {
+      ...editData,
+      applicable_nodes: Array.isArray(editData.applicable_nodes)
+        ? editData.applicable_nodes.map(id => Number(id))
+        : []
+    };
     const res = await fetch(`/api/attribute/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editData)
+      body: JSON.stringify(payload)
     });
     if (res.ok) {
       setEditId(null);
@@ -98,6 +140,12 @@ export default function AttributeManager() {
           onChange={e => setNewAttr({ ...newAttr, unit: e.target.value })}
           style={{ marginRight: 8 }}
         />
+        <MultiSelectInput
+          value={newAttr.applicable_nodes}
+          onChange={val => setNewAttr({ ...newAttr, applicable_nodes: val })}
+          options={nodes}
+          placeholder="Choose applicable nodes"
+        />
         <button onClick={handleAdd}>Add</button>
       </div>
       <hr />
@@ -109,6 +157,7 @@ export default function AttributeManager() {
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Type</th>
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Allowed Values</th>
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Unit</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Applicable Nodes</th>
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Actions</th>
           </tr>
         </thead>
@@ -166,6 +215,23 @@ export default function AttributeManager() {
               </td>
               <td style={{ paddingRight: 24 }}>
                 {editId === attr.id ? (
+                  <MultiSelectInput
+                    value={editData.applicable_nodes}
+                    onChange={val => setEditData({ ...editData, applicable_nodes: val })}
+                    options={nodes}
+                    placeholder="Choose applicable nodes"
+                  />
+                ) : Array.isArray(attr.applicable_nodes)
+                  ? attr.applicable_nodes
+                      .map(id => {
+                        const node = nodes.find(n => String(n.id) === String(id));
+                        return node ? node.label : id;
+                      })
+                      .join('; ')
+                  : ''}
+              </td>
+              <td style={{ paddingRight: 24 }}>
+                {editId === attr.id ? (
                   <>
                     <button onClick={() => handleUpdate(attr.id)}>Save</button>
                     <button onClick={() => setEditId(null)}>Cancel</button>
@@ -179,7 +245,10 @@ export default function AttributeManager() {
                         description: attr.description,
                         data_type: attr.data_type,
                         allowed_values: attr.allowed_values,
-                        unit: attr.unit
+                        unit: attr.unit,
+                        applicable_nodes: Array.isArray(attr.applicable_nodes)
+                          ? attr.applicable_nodes.map(String)
+                          : []
                       });
                     }}>Edit</button>
                     <button onClick={() => handleDelete(attr.id)}>Delete</button>

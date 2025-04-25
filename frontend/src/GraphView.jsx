@@ -667,12 +667,11 @@ export default function GraphView({ relationRefreshKey }) {
           style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: 16 }}
           onClick={resetDefaultView}
         >
-          {/* <img src="/logo192.png" alt="Logo" style={{ height: 32, marginRight: 8 }} /> */}
-          <span style={{ fontWeight: 700, fontSize: 20, color: '#1976d2' }}>Knowledge Builder</span>
         </div>
         {/* ...existing code... */}
         {selectedNode ? (
           <div>
+            <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
             <NodeProperties nodeId={selectedNode.id} />
             {selectedNode.summary && <><strong>Summary:</strong> <p>{selectedNode.summary}</p></>}
             {/* Propositions involving this node (from relationList) */}

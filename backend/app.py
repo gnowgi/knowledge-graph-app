@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import sqlite3
 import openai
+import json
 
 load_dotenv()
 import config
@@ -297,7 +298,7 @@ def list_relations():
 def list_attributes():
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT id, name, description, data_type, allowed_values, unit FROM attributes")
+    cur.execute("SELECT id, name, description, data_type, allowed_values, unit, applicable_nodes FROM attributes")
     rows = cur.fetchall()
     conn.close()
     return jsonify([
@@ -307,7 +308,8 @@ def list_attributes():
             "description": r[2],
             "data_type": r[3],
             "allowed_values": r[4],
-            "unit": r[5]
+            "unit": r[5],
+            "applicable_nodes": json.loads(r[6]) if r[6] else []
         } for r in rows
     ])
 
@@ -319,14 +321,18 @@ def create_attribute():
     data_type = data.get("data_type", "").strip()
     allowed_values = data.get("allowed_values", "").strip()
     unit = data.get("unit", "").strip()
+    applicable_nodes = data.get("applicable_nodes", [])
     if not name or not data_type:
         return jsonify({"error": "Name and data_type are required."}), 400
+    # Ensure applicable_nodes is a list, then store as JSON string
+    if not isinstance(applicable_nodes, list):
+        applicable_nodes = []
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     try:
         cur.execute(
-            "INSERT INTO attributes (name, description, data_type, allowed_values, unit) VALUES (?, ?, ?, ?, ?)",
-            (name, description, data_type, allowed_values, unit)
+            "INSERT INTO attributes (name, description, data_type, allowed_values, unit, applicable_nodes) VALUES (?, ?, ?, ?, ?, ?)",
+            (name, description, data_type, allowed_values, unit, json.dumps(applicable_nodes))
         )
         conn.commit()
         attr_id = cur.lastrowid
@@ -334,7 +340,15 @@ def create_attribute():
         conn.close()
         return jsonify({"error": "Attribute with this name already exists."}), 409
     conn.close()
-    return jsonify({"id": attr_id, "name": name, "description": description, "data_type": data_type, "allowed_values": allowed_values, "unit": unit})
+    return jsonify({
+        "id": attr_id,
+        "name": name,
+        "description": description,
+        "data_type": data_type,
+        "allowed_values": allowed_values,
+        "unit": unit,
+        "applicable_nodes": applicable_nodes
+    })
 
 @app.route("/api/attribute/<int:attr_id>", methods=["PATCH"])
 def update_attribute(attr_id):
@@ -344,11 +358,15 @@ def update_attribute(attr_id):
     data_type = data.get("data_type", "").strip()
     allowed_values = data.get("allowed_values", "").strip()
     unit = data.get("unit", "").strip()
+    applicable_nodes = data.get("applicable_nodes", [])
+    # Ensure applicable_nodes is a list, then store as JSON string
+    if not isinstance(applicable_nodes, list):
+        applicable_nodes = []
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute(
-        "UPDATE attributes SET name=?, description=?, data_type=?, allowed_values=?, unit=? WHERE id=?",
-        (name, description, data_type, allowed_values, unit, attr_id)
+        "UPDATE attributes SET name=?, description=?, data_type=?, allowed_values=?, unit=?, applicable_nodes=? WHERE id=?",
+        (name, description, data_type, allowed_values, unit, json.dumps(applicable_nodes), attr_id)
     )
     conn.commit()
     conn.close()
