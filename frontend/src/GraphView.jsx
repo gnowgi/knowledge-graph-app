@@ -475,6 +475,107 @@ export default function GraphView({ relationRefreshKey }) {
     }
   };
 
+  // Draw default network: all nodes (no labels), positioned by relations.
+  // Only used when no node or proposition is selected.
+  const drawDefaultNetwork = () => {
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
+    const sidebarWidth = 300;
+    const headerHeight = 50;
+    const width = window.innerWidth - sidebarWidth;
+    const height = window.innerHeight - headerHeight;
+
+    // Guard: wait for data
+    if (!allNodes.length) return;
+
+    // Use all nodes, and only links where both source and target exist in allNodes
+    const nodeIds = new Set(allNodes.map(n => n.id));
+    const nodes = allNodes.map(n => ({ ...n })); // clone to avoid mutating state
+
+    // Compute degree (number of relations) for each node
+    const degreeMap = {};
+    relationList.forEach(r => {
+      if (nodeIds.has(r.source)) degreeMap[r.source] = (degreeMap[r.source] || 0) + 1;
+      if (nodeIds.has(r.target)) degreeMap[r.target] = (degreeMap[r.target] || 0) + 1;
+    });
+
+    // Assign node radius based on degree (min 10, max 32)
+    nodes.forEach(n => {
+      const deg = degreeMap[n.id] || 1;
+      n._radius = Math.max(10, Math.min(32, 10 + Math.sqrt(deg) * 5));
+    });
+
+    const links = relationList
+      .filter(r => nodeIds.has(r.source) && nodeIds.has(r.target))
+      .map(r => ({
+        source: r.source,
+        target: r.target
+      }));
+
+    svg.attr('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
+      .attr('preserveAspectRatio', 'xMinYMin meet');
+
+    // D3 force simulation with link and charge forces for network layout
+    // Nodes with higher degree get more negative charge (repel more)
+    const simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(120).strength(1))
+      .force('charge', d3.forceManyBody().strength(d => -40 - (degreeMap[d.id] || 0) * 10))
+      .force('center', d3.forceCenter(sidebarWidth + 120, headerHeight + 80))
+      .force('collision', d3.forceCollide().radius(d => d._radius + 2));
+
+    // Draw links
+    const link = svg.append('g')
+      .attr('stroke', '#aaa')
+      .selectAll('line')
+      .data(links)
+      .enter().append('line')
+      .attr('stroke-width', 2);
+
+    // Draw nodes (no labels), radius based on degree
+    const node = svg.append('g')
+      .selectAll('circle')
+      .data(nodes)
+      .enter()
+      .append('circle')
+      .attr('r', d => d._radius)
+      .attr('fill', '#f5f5f5')
+      .attr('stroke', '#333')
+      .attr('stroke-width', 1.5)
+      .on('click', (event, d) => {
+        setSelectedNode(d);
+        showNodeAndNeighbors(d.id);
+      });
+
+    simulation.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+      node
+        .attr('cx', d => {
+          // Clamp x to stay within canvas (with margin for radius)
+          const r = d._radius || 10;
+          return Math.max(sidebarWidth + r, Math.min(width + sidebarWidth - r, d.x));
+        })
+        .attr('cy', d => {
+          // Clamp y to stay within canvas (with margin for radius)
+          const r = d._radius || 10;
+          return Math.max(headerHeight + r, Math.min(height + headerHeight - r, d.y));
+        });
+    });
+  };
+
+  // Only call drawDefaultNetwork when nothing is selected
+  useEffect(() => {
+    if (!selectedNode && nodes.length === 0 && links.length === 0) {
+      drawDefaultNetwork();
+    } else {
+      drawGraph(nodes, links);
+    }
+    // eslint-disable-next-line
+  }, [selectedNode, relationList, allNodes, nodes, links]);
+
   return (
     <div style={{ width: '100%', height: 'calc(100% - 45px)', display: 'flex' }}>
       <div className="sidebar">

@@ -35,11 +35,11 @@ export default function App() {
         <button
           onClick={() => setTab("relations")}
           className={tab === "relations" ? "active-tab" : ""}
-        >Relation Types</button>
+        >Relation Names</button>
         <button
           onClick={() => setTab("attributes")}
           className={tab === "attributes" ? "active-tab" : ""}
-        >Attributes</button>
+        >Attribute Names</button>
       </div>
       {tab === "map" && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', paddingLeft: 32 }}>
