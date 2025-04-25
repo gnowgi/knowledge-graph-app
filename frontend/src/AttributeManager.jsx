@@ -101,21 +101,24 @@ export default function AttributeManager() {
         <button onClick={handleAdd}>Add</button>
       </div>
       <hr />
-      <table>
+      <table style={{ borderCollapse: 'separate', borderSpacing: '0 8px', width: '100%' }}>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Type</th>
-            <th>Allowed Values</th>
-            <th>Unit</th>
-            <th>Actions</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Name</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Description</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Type</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Allowed Values</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Unit</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {attributes.map(attr => (
-            <tr key={attr.id}>
-              <td>
+          {attributes.map((attr, idx) => (
+            <tr
+              key={attr.id}
+              style={idx % 2 === 1 ? { background: '#eaf6ff' } : {}}
+            >
+              <td style={{ paddingRight: 24 }}>
                 {editId === attr.id ? (
                   <input
                     type="text"
@@ -124,7 +127,7 @@ export default function AttributeManager() {
                   />
                 ) : attr.name}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === attr.id ? (
                   <input
                     type="text"
@@ -133,7 +136,7 @@ export default function AttributeManager() {
                   />
                 ) : attr.description}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === attr.id ? (
                   <select
                     value={editData.data_type}
@@ -143,7 +146,7 @@ export default function AttributeManager() {
                   </select>
                 ) : attr.data_type}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === attr.id ? (
                   <input
                     type="text"
@@ -152,7 +155,7 @@ export default function AttributeManager() {
                   />
                 ) : attr.allowed_values}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === attr.id ? (
                   <input
                     type="text"
@@ -161,7 +164,7 @@ export default function AttributeManager() {
                   />
                 ) : attr.unit}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === attr.id ? (
                   <>
                     <button onClick={() => handleUpdate(attr.id)}>Save</button>

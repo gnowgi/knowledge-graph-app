@@ -96,20 +96,23 @@ export default function RelationTypeManager() {
 
       <hr />
 
-      <table>
+      <table style={{ borderCollapse: 'separate', borderSpacing: '0 8px', width: '100%' }}>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Inverse Name</th>
-            <th>Symmetric</th>
-            <th>Transitive</th>
-            <th>Actions</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Name</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Inverse Name</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Symmetric</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Transitive</th>
+            <th style={{ paddingRight: 24, textAlign: 'left' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {relationTypes.map(rt => (
-            <tr key={rt.id}>
-              <td>
+          {relationTypes.map((rt, idx) => (
+            <tr
+              key={rt.id}
+              style={idx % 2 === 1 ? { background: '#eaf6ff' } : {}}
+            >
+              <td style={{ paddingRight: 24 }}>
                 {editId === rt.id ? (
                   <input
                     type="text"
@@ -118,7 +121,7 @@ export default function RelationTypeManager() {
                   />
                 ) : rt.name}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === rt.id ? (
                   <input
                     type="text"
@@ -127,7 +130,7 @@ export default function RelationTypeManager() {
                   />
                 ) : rt.inverse_name || "-"}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === rt.id ? (
                   <input
                     type="checkbox"
@@ -136,7 +139,7 @@ export default function RelationTypeManager() {
                   />
                 ) : rt.symmetric ? "Yes" : "No"}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === rt.id ? (
                   <input
                     type="checkbox"
@@ -145,7 +148,7 @@ export default function RelationTypeManager() {
                   />
                 ) : rt.transitive ? "Yes" : "No"}
               </td>
-              <td>
+              <td style={{ paddingRight: 24 }}>
                 {editId === rt.id ? (
                   <>
                     <button onClick={() => handleUpdate(rt.id)}>Save</button>
