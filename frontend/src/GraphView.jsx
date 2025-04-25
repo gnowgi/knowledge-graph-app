@@ -576,9 +576,27 @@ export default function GraphView({ relationRefreshKey }) {
     // eslint-disable-next-line
   }, [selectedNode, relationList, allNodes, nodes, links]);
 
+  // Add a function to reset to default view
+  const resetDefaultView = () => {
+    setSelectedNode(null);
+    setNodes([]);
+    setLinks([]);
+    expandedNodes.current = new Set();
+  };
+
   return (
     <div style={{ width: '100%', height: 'calc(100% - 45px)', display: 'flex' }}>
       <div className="sidebar">
+        {/* Logo and title clickable for reload */}
+        <div
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: 16 }}
+          onClick={resetDefaultView}
+        >
+          {/* If you have a logo image, add it here */}
+          {/* <img src="/logo192.png" alt="Logo" style={{ height: 32, marginRight: 8 }} /> */}
+          <span style={{ fontWeight: 700, fontSize: 20, color: '#1976d2' }}>Knowledge Builder</span>
+        </div>
+        {/* ...existing code... */}
         {selectedNode ? (
           <div>
             <h3 className="node-details-title">{selectedNode.label}</h3>
@@ -626,7 +644,6 @@ export default function GraphView({ relationRefreshKey }) {
         <hr />
         {/* Removed Create New Node form as node creation is now handled in the relation builder */}
         <hr />
-        {/* Removed logo and title from sidebar */}
         <div className="sidebar-tabs">
           <button
             onClick={() => setSidebarTab('nodes')}

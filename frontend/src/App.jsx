@@ -13,8 +13,20 @@ export default function App() {
   return (
     <div style={{ width: '100vw', height: '100vh', fontFamily: 'sans-serif' }}>
       <div className="app-header" style={{ justifyContent: 'flex-start', paddingLeft: 32 }}>
-        <img src="https://www.gnu.org/software/gnowsys/gnowsys-logo-revised-small.png" alt="Knowledge Builder Logo" className="app-header-logo" />
-        <h1 className="app-header-title">Knowledge Builder</h1>
+        <img
+          src="https://www.gnu.org/software/gnowsys/gnowsys-logo-revised-small.png"
+          alt="Knowledge Builder Logo"
+          className="app-header-logo"
+          style={{ cursor: 'pointer' }}
+          onClick={() => window.location.reload()}
+        />
+        <h1
+          className="app-header-title"
+          style={{ cursor: 'pointer', marginLeft: 8 }}
+          onClick={() => window.location.reload()}
+        >
+          Knowledge Builder
+        </h1>
         <div className="difficulty-selector" style={{ display: 'flex', alignItems: 'center', marginLeft: 100 }}>
           <label style={{ fontWeight: 500, marginRight: 8 }}>Difficulty:</label>
           <select value={difficulty} onChange={e => setDifficulty(e.target.value)}>

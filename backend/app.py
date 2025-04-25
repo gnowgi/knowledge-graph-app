@@ -389,6 +389,33 @@ def get_node_attributes(node_id):
         } for r in rows
     ])
 
+def validate_attribute_value(data_type, value, allowed_values=None):
+    if data_type == "integer":
+        try:
+            int(value)
+            return True
+        except Exception:
+            return False
+    elif data_type == "float":
+        try:
+            float(value)
+            return True
+        except Exception:
+            return False
+    elif data_type == "boolean":
+        return str(value).lower() in ("true", "false", "1", "0")
+    elif data_type == "date":
+        import re
+        return bool(re.match(r"^\d{4}-\d{2}-\d{2}$", str(value)))
+    elif data_type == "array":
+        return isinstance(value, str) and len(value.strip()) > 0
+    elif data_type == "string":
+        return isinstance(value, str)
+    if allowed_values:
+        allowed = [v.strip() for v in allowed_values.split(";") if v.strip()]
+        return value in allowed
+    return True
+
 @app.route("/api/node/<int:node_id>/attribute", methods=["POST"])
 def add_node_attribute(node_id):
     data = request.get_json()
@@ -397,8 +424,21 @@ def add_node_attribute(node_id):
     quantifier = data.get("quantifier", None)
     if not attribute_id:
         return jsonify({"error": "attribute_id is required."}), 400
+
+    # Fetch attribute metadata for validation
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
+    cur.execute("SELECT data_type, allowed_values FROM attributes WHERE id=?", (attribute_id,))
+    attr_row = cur.fetchone()
+    if not attr_row:
+        conn.close()
+        return jsonify({"error": "Attribute not found."}), 404
+    data_type, allowed_values = attr_row
+
+    if not validate_attribute_value(data_type, value, allowed_values):
+        conn.close()
+        return jsonify({"error": f"Invalid value for data_type '{data_type}'."}), 400
+
     cur.execute(
         "INSERT INTO node_attributes (node_id, attribute_id, value, quantifier) VALUES (?, ?, ?, ?)",
         (node_id, attribute_id, value, quantifier)
@@ -415,6 +455,24 @@ def update_node_attribute(na_id):
     quantifier = data.get("quantifier", None)
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
+    # Fetch attribute_id and data_type for validation
+    cur.execute("SELECT attribute_id FROM node_attributes WHERE id=?", (na_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Node attribute not found."}), 404
+    attribute_id = row[0]
+    cur.execute("SELECT data_type, allowed_values FROM attributes WHERE id=?", (attribute_id,))
+    attr_row = cur.fetchone()
+    if not attr_row:
+        conn.close()
+        return jsonify({"error": "Attribute not found."}), 404
+    data_type, allowed_values = attr_row
+
+    if not validate_attribute_value(data_type, value, allowed_values):
+        conn.close()
+        return jsonify({"error": f"Invalid value for data_type '{data_type}'."}), 400
+
     if quantifier is not None:
         cur.execute("UPDATE node_attributes SET value=?, quantifier=? WHERE id=?", (value, quantifier, na_id))
     else:
