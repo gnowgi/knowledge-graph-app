@@ -28,9 +28,21 @@ export default function GraphView({ relationRefreshKey }) {
         drawGraph(nodes, links);
       });
 
-    fetch('/api/nodes').then(res => res.json()).then(setAllNodes);
+    fetch('/api/nodes').then(res => res.json()).then(data => {
+      // Normalize IDs to numbers
+      setAllNodes(data.map(n => ({ ...n, id: Number(n.id) })));
+    });
     fetch('/api/relation-types').then(res => res.json()).then(setRelationTypes);
-    fetch('/api/relations').then(res => res.json()).then(setRelationList);
+    fetch('/api/relations').then(res => res.json()).then(data => {
+      // Debug: log relationList
+      console.log("Fetched relationList:", data);
+      // Normalize IDs to numbers
+      setRelationList(data.map(r => ({
+        ...r,
+        source: Number(r.source),
+        target: Number(r.target)
+      })));
+    });
   }, [relationRefreshKey]);
 
   useEffect(() => {
@@ -475,8 +487,7 @@ export default function GraphView({ relationRefreshKey }) {
     }
   };
 
-  // Draw default network: all nodes (no labels), positioned by relations.
-  // Only used when no node or proposition is selected.
+  // Draw default network: all nodes, show relations as tapering arcs, no labels.
   const drawDefaultNetwork = () => {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -485,51 +496,75 @@ export default function GraphView({ relationRefreshKey }) {
     const width = window.innerWidth - sidebarWidth;
     const height = window.innerHeight - headerHeight;
 
-    // Guard: wait for data
-    if (!allNodes.length) return;
+    if (!allNodes.length) {
+      console.log("No nodes to draw.");
+      return;
+    }
 
-    // Use all nodes, and only links where both source and target exist in allNodes
-    const nodeIds = new Set(allNodes.map(n => n.id));
-    const nodes = allNodes.map(n => ({ ...n })); // clone to avoid mutating state
+    // Build a map from label to node object
+    const nodeLabelMap = {};
+    allNodes.forEach(n => { nodeLabelMap[n.label] = n; });
 
-    // Compute degree (number of relations) for each node
+    // Use node IDs for degree calculation
     const degreeMap = {};
     relationList.forEach(r => {
-      if (nodeIds.has(r.source)) degreeMap[r.source] = (degreeMap[r.source] || 0) + 1;
-      if (nodeIds.has(r.target)) degreeMap[r.target] = (degreeMap[r.target] || 0) + 1;
+      const sourceNode = nodeLabelMap[r.source_label];
+      const targetNode = nodeLabelMap[r.target_label];
+      if (sourceNode) degreeMap[sourceNode.id] = (degreeMap[sourceNode.id] || 0) + 1;
+      if (targetNode) degreeMap[targetNode.id] = (degreeMap[targetNode.id] || 0) + 1;
     });
 
-    // Assign node radius based on degree (min 10, max 32)
-    nodes.forEach(n => {
+    const nodes = allNodes.map(n => {
       const deg = degreeMap[n.id] || 1;
-      n._radius = Math.max(10, Math.min(32, 10 + Math.sqrt(deg) * 5));
+      // Restore original node size calculation
+      return { ...n, _radius: Math.max(10, Math.min(32, 10 + Math.sqrt(deg) * 5)) };
     });
 
+    // Build links using node objects
+    const nodeMap = {};
+    nodes.forEach(n => { nodeMap[n.id] = n; });
     const links = relationList
-      .filter(r => nodeIds.has(r.source) && nodeIds.has(r.target))
-      .map(r => ({
-        source: r.source,
-        target: r.target
-      }));
+      .map(r => {
+        const sourceNode = nodeLabelMap[r.source_label];
+        const targetNode = nodeLabelMap[r.target_label];
+        if (sourceNode && targetNode) {
+          return {
+            source: nodeMap[sourceNode.id],
+            target: nodeMap[targetNode.id]
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    // Debug: log links after label mapping
+    console.log("Links after label mapping:", links);
+
+    if (!links.length) {
+      console.log("No links to draw.");
+    }
 
     svg.attr('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
       .attr('preserveAspectRatio', 'xMinYMin meet');
 
-    // D3 force simulation with link and charge forces for network layout
-    // Nodes with higher degree get more negative charge (repel more)
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink(links).id(d => d.id).distance(120).strength(1))
       .force('charge', d3.forceManyBody().strength(d => -40 - (degreeMap[d.id] || 0) * 10))
       .force('center', d3.forceCenter(sidebarWidth + 120, headerHeight + 80))
       .force('collision', d3.forceCollide().radius(d => d._radius + 2));
 
-    // Draw links
-    const link = svg.append('g')
+    // Draw links as tapering arcs (no labels)
+    const arc = svg.append('g')
       .attr('stroke', '#aaa')
-      .selectAll('line')
+      .attr('stroke-width', 2)
+      .attr('fill', 'rgba(3, 10, 24, 0.25)')
+      .attr('pointer-events', 'visiblePainted')
+      .selectAll('path')
       .data(links)
-      .enter().append('line')
-      .attr('stroke-width', 2);
+      .enter().append('path');
+
+    // Debug: log arc selection
+    console.log("arc selection count:", arc.size());
 
     // Draw nodes (no labels), radius based on degree
     const node = svg.append('g')
@@ -547,20 +582,53 @@ export default function GraphView({ relationRefreshKey }) {
       });
 
     simulation.on('tick', () => {
-      link
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y);
+      arc.attr('d', d => {
+        // Tapered arc path between d.source and d.target
+        if (!d.source || !d.target) {
+          // Debug: log missing source/target
+          console.log("Arc missing source/target:", d);
+          return '';
+        }
+        const sx = d.source.x, sy = d.source.y;
+        const tx = d.target.x, ty = d.target.y;
+        if (typeof sx !== 'number' || typeof sy !== 'number' || typeof tx !== 'number' || typeof ty !== 'number') {
+          // Debug: log missing coordinates
+          console.log("Arc missing coordinates:", d);
+          return '';
+        }
+        const mx = (sx + tx) / 2, my = (sy + ty) / 2;
+        const dx = tx - sx, dy = ty - sy;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) return '';
+        const px = -dy / len, py = dx / len;
+        const arcHeight = 0.4 * len;
+        const cx = mx + px * arcHeight, cy = my + py * arcHeight;
+        const thick = 12, thin = 2;
+        // Tangent at source
+        const t1x = cx - sx, t1y = cy - sy;
+        const t1len = Math.sqrt(t1x * t1x + t1y * t1y);
+        const t1px = -t1y / t1len, t1py = t1x / t1len;
+        // Tangent at target
+        const t2x = tx - cx, t2y = ty - cy;
+        const t2len = Math.sqrt(t2x * t2x + t2y * t2y);
+        const t2px = -t2y / t2len, t2py = t2x / t2len;
+        // Four points: source left/right, target left/right
+        const s1x = sx + t1px * thick / 2, s1y = sy + t1py * thick / 2;
+        const s2x = sx - t1px * thick / 2, s2y = sy - t1py * thick / 2;
+        const t1x2 = tx + t2px * thin / 2, t1y2 = ty + t2py * thin / 2;
+        const t2x2 = tx - t2px * thin / 2, t2y2 = ty - t2py * thin / 2;
+        // Path: move to s1, quadratic to t1, line to t2, quadratic back to s2, close
+        return `M${s1x},${s1y} Q${cx},${cy} ${t1x2},${t1y2} L${t2x2},${t2y2} Q${cx},${cy} ${s2x},${s2y} Z`;
+      });
       node
         .attr('cx', d => {
-          // Clamp x to stay within canvas (with margin for radius)
           const r = d._radius || 10;
+          // Clamp horizontally within canvas
           return Math.max(sidebarWidth + r, Math.min(width + sidebarWidth - r, d.x));
         })
         .attr('cy', d => {
-          // Clamp y to stay within canvas (with margin for radius)
           const r = d._radius || 10;
+          // Clamp vertically within canvas (avoid top and bottom overflow)
           return Math.max(headerHeight + r, Math.min(height + headerHeight - r, d.y));
         });
     });
@@ -568,7 +636,14 @@ export default function GraphView({ relationRefreshKey }) {
 
   // Only call drawDefaultNetwork when nothing is selected
   useEffect(() => {
-    if (!selectedNode && nodes.length === 0 && links.length === 0) {
+    // Only draw default network if allNodes and relationList are loaded and non-empty
+    if (
+      !selectedNode &&
+      nodes.length === 0 &&
+      links.length === 0 &&
+      allNodes.length > 0 &&
+      relationList.length > 0
+    ) {
       drawDefaultNetwork();
     } else {
       drawGraph(nodes, links);
@@ -592,15 +667,12 @@ export default function GraphView({ relationRefreshKey }) {
           style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: 16 }}
           onClick={resetDefaultView}
         >
-          {/* If you have a logo image, add it here */}
           {/* <img src="/logo192.png" alt="Logo" style={{ height: 32, marginRight: 8 }} /> */}
           <span style={{ fontWeight: 700, fontSize: 20, color: '#1976d2' }}>Knowledge Builder</span>
         </div>
         {/* ...existing code... */}
         {selectedNode ? (
           <div>
-            <h3 className="node-details-title">{selectedNode.label}</h3>
-            {/* Display node properties */}
             <NodeProperties nodeId={selectedNode.id} />
             {selectedNode.summary && <><strong>Summary:</strong> <p>{selectedNode.summary}</p></>}
             {/* Propositions involving this node (from relationList) */}
