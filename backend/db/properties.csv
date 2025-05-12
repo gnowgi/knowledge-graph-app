@@ -1,40 +1,40 @@
-name,datatype,allowed_values,unit,applicable_nodes,description
-mass,float,,kilogram (kg),physical objects (e.g., particles, planets, organisms),"Measures the amount of matter in an object. Example: A planet has a mass of 5.972 × 10^24 kg."
-velocity,float,,meters per second (m/s),moving objects (e.g., particles, vehicles),"Describes the rate of change of position. Example: A car has a velocity of 20 m/s."
-energy,float,,joule (J),systems (e.g., particles, fields, reactions),"Quantifies the capacity to do work. Example: A photon carries energy of 2.0 × 10^-19 J."
-charge,float,,coulomb (C),charged particles (e.g., electrons, ions),"Measures electric charge. Example: An electron has a charge of -1.602 × 10^-19 C."
-temperature,float,,kelvin (K),systems (e.g., gases, liquids, solids),"Indicates thermal energy level. Example: Water boils at a temperature of 373.15 K at standard pressure."
-concentration,float,,moles per liter (mol/L),solutions (e.g., chemical mixtures),"Measures solute amount per unit volume. Example: A saline solution has a concentration of 0.9 mol/L NaCl."
-pH,float,0 to 14,,solutions (e.g., aqueous solutions),"Measures acidity or basicity. Example: Lemon juice has a pH of 2.0."
-wavelength,float,,nanometer (nm),waves (e.g., light, sound),"Distance between wave peaks. Example: Blue light has a wavelength of 450 nm."
-frequency,float,,hertz (Hz),waves (e.g., electromagnetic, mechanical),"Number of wave cycles per second. Example: A radio wave has a frequency of 100 MHz."
-volume,float,,cubic meter (m³),objects (e.g., solids, liquids, gases),"Measures space occupied. Example: A container has a volume of 0.001 m³."
-density,float,,kilogram per cubic meter (kg/m³),materials (e.g., solids, liquids, gases),"Mass per unit volume. Example: Water has a density of 1000 kg/m³."
-atomic_number,integer,,none,elements (e.g., chemical elements),"Number of protons in an atom’s nucleus. Example: Carbon has an atomic_number of 6."
-molecular_weight,float,,grams per mole (g/mol),molecules (e.g., chemical compounds),"Mass of one mole of a substance. Example: Water has a molecular_weight of 18.015 g/mol."
-gene_length,integer,,base pairs (bp),genes (e.g., DNA sequences),"Number of nucleotide base pairs in a gene. Example: The CFTR gene has a gene_length of 250,000 bp."
-expression_level,float,,none,genes/proteins (e.g., in cells),"Quantifies gene or protein activity. Example: A gene has an expression_level of 5.2 in liver cells."
-cardinality,integer,,none,sets (e.g., mathematical sets),"Number of elements in a set. Example: The set {1, 2, 3} has a cardinality of 3."
-dimension,integer,,none,geometric objects (e.g., points, lines, shapes),"Number of independent coordinates. Example: A cube has a dimension of 3."
-area,float,,square meter (m²),surfaces (e.g., 2D shapes, objects),"Measures surface extent. Example: A rectangle has an area of 12 m²."
-angle,float,,radian (rad),geometric objects (e.g., lines, planes),"Measures rotation between two rays. Example: A right angle has an angle of π/2 rad."
-entropy,float,,joules per kelvin (J/K),systems (e.g., thermodynamic, information),"Measures disorder or uncertainty. Example: A gas system has an entropy of 50 J/K."
-mutation_rate,float,,mutations per generation,genes/populations,"Frequency of genetic mutations. Example: A gene has a mutation_rate of 10^-8 mutations per generation."
-cell_size,float,,micrometer (µm),cells (e.g., bacteria, eukaryotic cells),"Physical size of a cell. Example: A red blood cell has a cell_size of 7 µm in diameter."
-replication_rate,float,,cells per hour,cells (e.g., bacteria, cancer cells),"Rate of cell division. Example: E. coli has a replication_rate of 2 cells per hour under optimal conditions."
-photosynthetic_efficiency,float,0 to 1,none,photosynthetic organisms (e.g., plants, algae),"Fraction of light energy converted to chemical energy. Example: A plant has a photosynthetic_efficiency of 0.06."
-metabolic_rate,float,,watts (W),organisms (e.g., animals, plants),"Rate of energy expenditure. Example: A human has a metabolic_rate of 100 W at rest."
-chromosome_number,integer,,none,organisms (e.g., species),"Number of chromosomes in a cell. Example: Humans have a chromosome_number of 46."
-electronegativity,float,,none,elements (e.g., atoms in periodic table),"Tendency to attract electrons. Example: Fluorine has an electronegativity of 3.98."
-boiling_point,float,,kelvin (K),substances (e.g., liquids, compounds),"Temperature at which a substance boils. Example: Water has a boiling_point of 373.15 K."
-solubility,float,,grams per liter (g/L),solutes (e.g., salts, gases),"Amount of solute that dissolves in a solvent. Example: NaCl has a solubility of 360 g/L in water."
-reaction_rate,float,,moles per liter per second (mol/L/s),chemical reactions,"Speed of a chemical reaction. Example: A reaction has a reaction_rate of 0.01 mol/L/s."
-bond_dissociation_energy,float,,kilojoules per mole (kJ/mol),chemical bonds (e.g., covalent bonds),"Energy required to break a bond. Example: The C-H bond has a bond_dissociation_energy of 413 kJ/mol."
-elevation,float,,meters (m),landforms (e.g., mountains, plains),"Height above sea level. Example: Mount Everest has an elevation of 8,848 m."
-latitude,float,-90 to 90,degrees (°),locations (e.g., points on Earth),"Angular distance north or south of the equator. Example: New York City has a latitude of 40.7128° N."
-longitude,float,-180 to 180,degrees (°),locations (e.g., points on Earth),"Angular distance east or west of the prime meridian. Example: New York City has a longitude of 74.0060° W."
-precipitation,float,,millimeters per year (mm/yr),regions (e.g., climate zones),"Amount of rainfall or snowfall. Example: The Amazon rainforest has a precipitation of 2,000 mm/yr."
-surface_area,float,,square kilometer (km²),geographic features (e.g., lakes, countries),"Extent of a surface. Example: Lake Superior has a surface_area of 82,100 km²."
-population_density,float,,people per square kilometer (people/km²),regions (e.g., cities, countries),"Number of people per unit area. Example: Tokyo has a population_density of 6,224 people/km²."
-soil_ph,float,0 to 14,,soils (e.g., agricultural lands),"Acidity or basicity of soil. Example: A farmland has a soil_ph of 6.5."
-tectonic_plate_velocity,float,,centimeters per year (cm/yr),tectonic plates,"Speed of plate movement. Example: The Pacific Plate has a tectonic_plate_velocity of 7 cm/yr."
+name,datatype,allowed_values,unit,description
+mass,float,,kilogram (kg), particles, planets, organisms),Measures the amount of matter in an object. Example: A planet has a mass of 5.972 × 10^24 kg.
+velocity,float,,meters per second (m/s), particles, vehicles),Describes the rate of change of position. Example: A car has a velocity of 20 m/s.,
+energy,float,,joule (J), particles, fields, reactions),Quantifies the capacity to do work. Example: A photon carries energy of 2.0 × 10^-19 J.
+charge,float,,coulomb (C), electrons, ions),Measures electric charge. Example: An electron has a charge of -1.602 × 10^-19 C.,
+temperature,float,,kelvin (K), gases, liquids, solids),Indicates thermal energy level. Example: Water boils at a temperature of 373.15 K at standard pressure.
+concentration,float,,moles per liter (mol/L), chemical mixtures),Measures solute amount per unit volume. Example: A saline solution has a concentration of 0.9 mol/L NaCl.,,
+pH,float,0 to 14,, aqueous solutions),Measures acidity or basicity. Example: Lemon juice has a pH of 2.0.,,
+wavelength,float,,nanometer (nm), light, sound),Distance between wave peaks. Example: Blue light has a wavelength of 450 nm.,
+frequency,float,,hertz (Hz), electromagnetic, mechanical),Number of wave cycles per second. Example: A radio wave has a frequency of 100 MHz.,
+volume,float,,cubic meter (m³), solids, liquids, gases),Measures space occupied. Example: A container has a volume of 0.001 m³.
+density,float,,kilogram per cubic meter (kg/m³), solids, liquids, gases),Mass per unit volume. Example: Water has a density of 1000 kg/m³.
+atomic_number,integer,,none, chemical elements),Number of protons in an atom’s nucleus. Example: Carbon has an atomic_number of 6.,,
+molecular_weight,float,,grams per mole (g/mol), chemical compounds),Mass of one mole of a substance. Example: Water has a molecular_weight of 18.015 g/mol.,,
+gene_length,integer,,base pairs (bp), DNA sequences),"Number of nucleotide base pairs in a gene. Example: The CFTR gene has a gene_length of 250,000 bp.",,
+expression_level,float,,none, in cells),Quantifies gene or protein activity. Example: A gene has an expression_level of 5.2 in liver cells.,,
+cardinality,integer,,none, mathematical sets),"Number of elements in a set. Example: The set {1, 2, 3} has a cardinality of 3.",,
+dimension,integer,,none, points, lines, shapes),Number of independent coordinates. Example: A cube has a dimension of 3.
+area,float,,square meter (m²), 2D shapes, objects),Measures surface extent. Example: A rectangle has an area of 12 m².,
+angle,float,,radian (rad), lines, planes),Measures rotation between two rays. Example: A right angle has an angle of π/2 rad.,
+entropy,float,,joules per kelvin (J/K), thermodynamic, information),Measures disorder or uncertainty. Example: A gas system has an entropy of 50 J/K.,
+mutation_rate,float,,mutations per generation,Frequency of genetic mutations. Example: A gene has a mutation_rate of 10^-8 mutations per generation.,,,
+cell_size,float,,micrometer (µm), bacteria, eukaryotic cells),Physical size of a cell. Example: A red blood cell has a cell_size of 7 µm in diameter.,
+replication_rate,float,,cells per hour, bacteria, cancer cells),Rate of cell division. Example: E. coli has a replication_rate of 2 cells per hour under optimal conditions.,
+photosynthetic_efficiency,float,0 to 1,none, plants, algae),Fraction of light energy converted to chemical energy. Example: A plant has a photosynthetic_efficiency of 0.06.,
+metabolic_rate,float,,watts (W), animals, plants),Rate of energy expenditure. Example: A human has a metabolic_rate of 100 W at rest.,
+chromosome_number,integer,,none, species),Number of chromosomes in a cell. Example: Humans have a chromosome_number of 46.,,
+electronegativity,float,,none, atoms in periodic table),Tendency to attract electrons. Example: Fluorine has an electronegativity of 3.98.,,
+boiling_point,float,,kelvin (K), liquids, compounds),Temperature at which a substance boils. Example: Water has a boiling_point of 373.15 K.,
+solubility,float,,grams per liter (g/L), salts, gases),Amount of solute that dissolves in a solvent. Example: NaCl has a solubility of 360 g/L in water.,
+reaction_rate,float,,moles per liter per second (mol/L/s),Speed of a chemical reaction. Example: A reaction has a reaction_rate of 0.01 mol/L/s.,,,
+bond_dissociation_energy,float,,kilojoules per mole (kJ/mol), covalent bonds),Energy required to break a bond. Example: The C-H bond has a bond_dissociation_energy of 413 kJ/mol.,,
+elevation,float,,meters (m), mountains, plains),"Height above sea level. Example: Mount Everest has an elevation of 8,848 m.",
+latitude,float,-90 to 90,degrees (°), points on Earth),Angular distance north or south of the equator. Example: New York City has a latitude of 40.7128° N.,,
+longitude,float,-180 to 180,degrees (°), points on Earth),Angular distance east or west of the prime meridian. Example: New York City has a longitude of 74.0060° W.,,
+precipitation,float,,millimeters per year (mm/yr), climate zones),"Amount of rainfall or snowfall. Example: The Amazon rainforest has a precipitation of 2,000 mm/yr.",,
+surface_area,float,,square kilometer (km²), lakes, countries),"Extent of a surface. Example: Lake Superior has a surface_area of 82,100 km².",
+population_density,float,,people per square kilometer (people/km²), cities, countries),"Number of people per unit area. Example: Tokyo has a population_density of 6,224 people/km².",
+soil_ph,float,0 to 14,, agricultural lands),Acidity or basicity of soil. Example: A farmland has a soil_ph of 6.5.,,
+tectonic_plate_velocity,float,,centimeters per year (cm/yr),Speed of plate movement. Example: The Pacific Plate has a tectonic_plate_velocity of 7 cm/yr.,,,
