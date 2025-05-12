@@ -6,11 +6,11 @@ CREATE TABLE attributes (
     data_type TEXT NOT NULL, -- e.g. integer, float, string, boolean, date, array
     allowed_values TEXT,     -- comma-separated or JSON string for enums
     unit TEXT,
-    applicable_nodes TEXT    -- JSON array of page IDs (nodes that can have this attribute)
+    applicable_nodes TEXT    -- JSON array of node IDs (nodes that can have this attribute)
 );
 
--- Pages (Nodes)
-CREATE TABLE pages (
+-- Nodes
+CREATE TABLE nodes (
     id INTEGER PRIMARY KEY,
     title TEXT NOT NULL,
     summary TEXT,
@@ -30,11 +30,14 @@ CREATE TABLE relation_types (
 -- Relations (Edges)
 CREATE TABLE relations (
     id INTEGER PRIMARY KEY,
-    source_page_id INTEGER NOT NULL,
-    target_page_id INTEGER NOT NULL,
+    source_node_id INTEGER NOT NULL,
+    target_node_id INTEGER NOT NULL,
     relation_type_id INTEGER NOT NULL,
-    FOREIGN KEY(source_page_id) REFERENCES pages(id),
-    FOREIGN KEY(target_page_id) REFERENCES pages(id),
+    modality TEXT,
+    subject_quantifier TEXT, 
+    object_quantifier TEXT,
+    FOREIGN KEY(source_node_id) REFERENCES nodes(id),
+    FOREIGN KEY(target_node_id) REFERENCES nodes(id),
     FOREIGN KEY(relation_type_id) REFERENCES relation_types(id)
 );
 
@@ -44,13 +47,53 @@ CREATE TABLE node_attributes (
     node_id INTEGER NOT NULL,
     attribute_id INTEGER NOT NULL,
     value TEXT,
+    modality TEXT,
     quantifier TEXT, -- e.g. all, some, none
-    FOREIGN KEY(node_id) REFERENCES pages(id),
+    FOREIGN KEY(node_id) REFERENCES nodes(id),
     FOREIGN KEY(attribute_id) REFERENCES attributes(id)
 );
--- Sample data
-INSERT INTO pages (id, title) VALUES (1, 'Photosynthesis'), (2, 'Biology'), (3, 'Life Sciences');
-INSERT INTO relation_types (id, name, is_symmetric, is_transitive) VALUES (1, 'is part of', 0, 1);
-INSERT INTO relations (source_page_id, target_page_id, relation_type_id) VALUES
-    (1, 2, 1),
-    (2, 3, 1);
+
+-- Insert commonly used relations
+INSERT INTO relation_types (name, inverse_name, is_symmetric, is_transitive, description) VALUES
+('is_part_of', 'has_part', 'no', 'no', 'Indicates that an entity is a component of a larger entity. Example: An electron is_part_of an atom.'),
+('has_part', 'is_part_of', 'no', 'no', 'Indicates that an entity contains a component. Example: An atom has_part an electron.'),
+('causes', 'is_caused_by', 'no', 'no', 'Describes a causal relationship between events or phenomena. Example: A force causes acceleration.'),
+('is_caused_by', 'causes', 'no', 'no', 'Indicates an event or phenomenon resulting from a cause. Example: Acceleration is_caused_by a force.'),
+('interacts_with', 'interacts_with', 'yes', 'no', 'Represents an interaction between two entities. Example: A protein interacts_with another protein in a signaling pathway.'),
+('depends_on', 'is_depended_on', 'no', 'yes', 'Shows dependency of one entity on another. Example: A chemical reaction depends_on a catalyst.'),
+('is_depended_on', 'depends_on', 'no', 'yes', 'Indicates an entity that others depend on. Example: A catalyst is_depended_on by a chemical reaction.'),
+('is_a', 'is_a_type_of', 'no', 'yes', 'Denotes a classification or type relationship. Example: A mammal is_a vertebrate.'),
+('is_a_type_of', 'is_a', 'no', 'yes', 'Indicates a category that an entity belongs to. Example: A vertebrate is_a_type_of animal.'),
+('relates_to', 'relates_to', 'yes', 'no', 'A general relationship between concepts with shared context. Example: Calculus relates_to physics in motion studies.'),
+('produces', 'is_produced_by', 'no', 'no', 'Shows that an entity creates another. Example: A nuclear reaction produces energy.'),
+('is_produced_by', 'produces', 'no', 'no', 'Indicates an entity created by another. Example: Energy is_produced_by a nuclear reaction.'),
+('contains', 'is_contained_in', 'no', 'no', 'Describes containment of one entity within another. Example: A cell contains a nucleus.'),
+('is_contained_in', 'contains', 'no', 'no', 'Indicates an entity is within another. Example: A nucleus is_contained_in a cell.'),
+('is_similar_to', 'is_similar_to', 'yes', 'no', 'Denotes similarity between entities. Example: A wave in physics is_similar_to a wave in mathematics.'),
+('influences', 'is_influenced_by', 'no', 'no', 'Indicates an entity affects another. Example: A magnetic field influences charged particles.'),
+('is_influenced_by', 'influences', 'no', 'no', 'Shows an entity affected by another. Example: Charged particles is_influenced_by a magnetic field.'),
+('encodes', 'is_encoded_by', 'no', 'no', 'Indicates a gene encodes a protein. Example: The insulin gene encodes the insulin protein.'),
+('is_encoded_by', 'encodes', 'no', 'no', 'Shows a protein is produced from a gene. Example: The insulin protein is_encoded_by the insulin gene.'),
+('regulates', 'is_regulated_by', 'no', 'no', 'Describes a molecule controlling a biological process. Example: A transcription factor regulates gene expression.'),
+('is_regulated_by', 'regulates', 'no', 'no', 'Indicates a process controlled by a molecule. Example: Gene expression is_regulated_by a transcription factor.'),
+('is_homologous_to', 'is_homologous_to', 'yes', 'no', 'Denotes evolutionary similarity between genes or proteins. Example: Human hemoglobin is_homologous_to chimpanzee hemoglobin.'),
+('expresses', 'is_expressed_in', 'no', 'no', 'Shows a gene being expressed in a tissue. Example: The opsin gene expresses in retinal cells.'),
+('is_expressed_in', 'expresses', 'no', 'no', 'Indicates a tissue where a gene is active. Example: Retinal cells is_expressed_in by the opsin gene.'),
+('mutates_to', 'is_mutated_from', 'no', 'no', 'Describes a gene changing to a variant. Example: A normal BRCA1 gene mutates_to a mutant BRCA1 gene.'),
+('is_mutated_from', 'mutates_to', 'no', 'no', 'Shows a variant gene derived from an original. Example: A mutant BRCA1 gene is_mutated_from a normal BRCA1 gene.'),
+('governs', 'is_governed_by', 'no', 'no', 'Indicates a law or principle controlling a phenomenon. Example: Newton''s second law governs acceleration.'),
+('is_governed_by', 'governs', 'no', 'no', 'Shows a phenomenon controlled by a law. Example: Acceleration is_governed_by Newton''s second law.'),
+('propagates_through', 'is_propagated_by', 'no', 'no', 'Describes a wave moving through a medium. Example: Light propagates_through a vacuum.'),
+('is_propagated_by', 'propagates_through', 'no', 'no', 'Indicates a medium allowing wave movement. Example: A vacuum is_propagated_by light.'),
+('induces', 'is_induced_by', 'no', 'no', 'Shows a field causing an effect. Example: A magnetic field induces an electric current.'),
+('is_induced_by', 'induces', 'no', 'no', 'Indicates an effect caused by a field. Example: An electric current is_induced_by a magnetic field.'),
+('conserves', 'is_conserved_by', 'no', 'yes', 'Denotes a quantity preserved in a system. Example: Energy conserves in an isolated system.'),
+('is_conserved_by', 'conserves', 'no', 'yes', 'Shows a system preserving a quantity. Example: An isolated system is_conserved_by energy.'),
+('bonds_with', 'is_bonded_to', 'yes', 'no', 'Indicates atoms forming a chemical bond. Example: Hydrogen bonds_with oxygen in water.'),
+('is_bonded_to', 'bonds_with', 'yes', 'no', 'Shows an atom connected via a bond. Example: Oxygen is_bonded_to hydrogen in water.'),
+('catalyzes', 'is_catalyzed_by', 'no', 'no', 'Describes an enzyme speeding up a reaction. Example: Catalase catalyzes hydrogen peroxide decomposition.'),
+('is_catalyzed_by', 'catalyzes', 'no', 'no', 'Indicates a reaction sped up by an enzyme. Example: Hydrogen peroxide decomposition is_catalyzed_by catalase.'),
+('reacts_with', 'reacts_with', 'yes', 'no', 'Shows substances undergoing a chemical reaction. Example: Sodium reacts_with chlorine to form sodium chloride.'),
+('is_oxidized_by', 'reduces', 'no', 'no', 'Denotes a substance losing electrons. Example: Iron is_oxidized_by oxygen in rusting.'),
+('reduces', 'is_oxidized_by', 'no', 'no', 'Indicates a substance gaining electrons. Example: Oxygen reduces iron in rusting.');
+

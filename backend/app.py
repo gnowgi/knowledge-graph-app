@@ -21,47 +21,47 @@ def create_node():
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT id FROM pages WHERE LOWER(title) = ?", (normalized_title,))
+    cur.execute("SELECT id FROM nodes WHERE LOWER(title) = ?", (normalized_title,))
     if cur.fetchone():
         conn.close()
         return jsonify({"error": "Node with this title already exists."}), 409
 
     summary = generate_summary(title)
-    cur.execute("INSERT INTO pages (title, summary) VALUES (?, ?)", (title, summary))
-    page_id = cur.lastrowid
+    cur.execute("INSERT INTO nodes (title, summary) VALUES (?, ?)", (title, summary))
+    node_id = cur.lastrowid
     conn.commit()
     conn.close()
 
-    return jsonify({"id": page_id, "label": title, "summary": summary})
+    return jsonify({"id": node_id, "label": title, "summary": summary})
 
 
 @app.route("/api/nodes", methods=["GET"])
 def list_nodes():
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT id, title, summary, is_instance FROM pages")
+    cur.execute("SELECT id, title, summary, is_instance FROM nodes")
     rows = cur.fetchall()
     conn.close()
     return jsonify([{"id": r[0], "label": r[1], "summary": r[2], "is_instance": bool(r[3])} for r in rows])
 
 
 
-@app.route("/api/page/<int:page_id>/neighbors")
-def neighbors(page_id):
+@app.route("/api/node/<int:node_id>/neighbors")
+def neighbors(node_id):
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT id, title, summary, is_instance FROM pages WHERE id=?", (page_id,))
+    cur.execute("SELECT id, title, summary, is_instance FROM nodes WHERE id=?", (node_id,))
     node = cur.fetchone()
     nodes = [{"id": node[0], "label": node[1], "summary": node[2], "is_instance": bool(node[3])}] if node else []
 
     cur.execute("""
-        SELECT p.id, p.title, p.summary, p.is_instance, r.source_page_id, r.target_page_id, rt.name
+        SELECT n.id, n.title, n.summary, n.is_instance, r.source_node_id, r.target_node_id, rt.name
         FROM relations r
-        JOIN pages p ON p.id = r.target_page_id
+        JOIN nodes n ON n.id = r.target_node_id
         JOIN relation_types rt ON rt.id = r.relation_type_id
-        WHERE r.source_page_id=?
-    """, (page_id,))
+        WHERE r.source_node_id=?
+    """, (node_id,))
 
     links = []
     for nid, title, summary, is_instance, source, target, relname in cur.fetchall():
@@ -72,13 +72,13 @@ def neighbors(page_id):
     return jsonify({"nodes": nodes, "links": links})
 
 
-@app.route("/api/node/<int:page_id>", methods=["DELETE"])
-def delete_node(page_id):
+@app.route("/api/node/<int:node_id>", methods=["DELETE"])
+def delete_node(node_id):
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
 
     # Check for related links
-    cur.execute("SELECT COUNT(*) FROM relations WHERE source_page_id=? OR target_page_id=?", (page_id, page_id))
+    cur.execute("SELECT COUNT(*) FROM relations WHERE source_node_id=? OR target_node_id=?", (node_id, node_id))
     relation_count = cur.fetchone()[0]
 
     if relation_count > 0:
@@ -88,7 +88,7 @@ def delete_node(page_id):
             "message": f"Node has {relation_count} relation(s). Cannot delete."
         }), 409
 
-    cur.execute("DELETE FROM pages WHERE id=?", (page_id,))
+    cur.execute("DELETE FROM nodes WHERE id=?", (node_id,))
     conn.commit()
     conn.close()
     return jsonify({"success": True})
@@ -103,7 +103,7 @@ def update_node():
 
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
-    cur.execute("UPDATE pages SET title=?, summary=? WHERE id=?", (title, summary, node_id))
+    cur.execute("UPDATE nodes SET title=?, summary=? WHERE id=?", (title, summary, node_id))
     conn.commit()
     conn.close()
 
@@ -254,13 +254,13 @@ def create_relation():
 
     # Insert the relation with new fields
     cur.execute("""
-        INSERT INTO relations (source_page_id, target_page_id, relation_type_id, modality, subject_quantifier, object_quantifier)
+        INSERT INTO relations (source_node_id, target_node_id, relation_type_id, modality, subject_quantifier, object_quantifier)
         VALUES (?, ?, ?, ?, ?, ?)
     """, (source, target, relation_type_id, modality, subject_quantifier, object_quantifier))
 
     # Normalize and check for 'instance of' relation
     if normalize_relation_name(rel_name) == "instance of":
-        cur.execute("UPDATE pages SET is_instance=1 WHERE id=?", (source,))
+        cur.execute("UPDATE nodes SET is_instance=1 WHERE id=?", (source,))
 
     conn.commit()
     conn.close()
@@ -283,8 +283,8 @@ def list_relations():
     cur.execute("""
         SELECT r.id, s.title, rt.name, t.title, r.modality, r.subject_quantifier, r.object_quantifier
         FROM relations r
-        JOIN pages s ON r.source_page_id = s.id
-        JOIN pages t ON r.target_page_id = t.id
+        JOIN nodes s ON r.source_node_id = s.id
+        JOIN nodes t ON r.target_node_id = t.id
         JOIN relation_types rt ON r.relation_type_id = rt.id
     """)
     rows = cur.fetchall()

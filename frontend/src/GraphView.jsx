@@ -20,7 +20,7 @@ export default function GraphView({ relationRefreshKey }) {
   const [editNodeData, setEditNodeData] = useState({ label: '', summary: '' });
 
   useEffect(() => {
-    fetch('/api/page/1/neighbors')
+    fetch('/api/node/1/neighbors')
       .then(res => res.json())
       .then(({ nodes, links }) => {
         setNodes(nodes);
@@ -301,7 +301,7 @@ export default function GraphView({ relationRefreshKey }) {
     if (expandedNodes.current.has(id)) return;
     expandedNodes.current.add(id);
 
-    fetch(`/api/page/${id}/neighbors`)
+    fetch(`/api/node/${id}/neighbors`)
       .then(res => res.json())
       .then(async ({ nodes: newNodes, links: newLinks }) => {
         let allRels = relationList;
@@ -362,7 +362,7 @@ export default function GraphView({ relationRefreshKey }) {
 
   // Helper: redraw graph for a single node and its neighbors (with inferred)
   const showNodeAndNeighbors = (nodeId) => {
-    fetch(`/api/page/${nodeId}/neighbors`)
+    fetch(`/api/node/${nodeId}/neighbors`)
       .then(res => res.json())
       .then(async ({ nodes, links }) => {
         let allRels = relationList;
