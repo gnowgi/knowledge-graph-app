@@ -1,4 +1,4 @@
-Attribute name,datatype,optional allowed values,optional unit,applicable class/types of objects,description with an example
+name,datatype,allowed_values,unit,applicable_nodes,description
 mass,float,,kilogram (kg),physical objects (e.g., particles, planets, organisms),"Measures the amount of matter in an object. Example: A planet has a mass of 5.972 × 10^24 kg."
 velocity,float,,meters per second (m/s),moving objects (e.g., particles, vehicles),"Describes the rate of change of position. Example: A car has a velocity of 20 m/s."
 energy,float,,joule (J),systems (e.g., particles, fields, reactions),"Quantifies the capacity to do work. Example: A photon carries energy of 2.0 × 10^-19 J."

@@ -1,4 +1,4 @@
-name_of_relation,inverse_name,symmetric,transitive,description_with_example
+name,inverse_name,symmetric,transitive,description
 is_part_of,has_part,no,no,"Indicates that an entity is a component of a larger entity. Example: An electron is_part_of an atom."
 has_part,is_part_of,no,no,"Indicates that an entity contains a component. Example: An atom has_part an electron."
 causes,is_caused_by,no,no,"Describes a causal relationship between events or phenomena. Example: A force causes acceleration."

@@ -23,7 +23,8 @@ CREATE TABLE relation_types (
     name TEXT UNIQUE NOT NULL,
     inverse_name TEXT,
     is_symmetric INTEGER DEFAULT 0,
-    is_transitive INTEGER DEFAULT 0
+    is_transitive INTEGER DEFAULT 0,
+    description TEXT
 );
 
 -- Relations (Edges)
