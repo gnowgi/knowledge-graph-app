@@ -47,7 +47,7 @@ export default function RelationTypeManager() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this relation type?")) return;
-    const res = await fetch(`/api/relation/${id}`, {
+    const res = await fetch(`/api/relation-type/${id}`, {
       method: 'DELETE'
     });
     if (res.ok) {

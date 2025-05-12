@@ -5,8 +5,7 @@ CREATE TABLE attributes (
     description TEXT,
     data_type TEXT NOT NULL, -- e.g. integer, float, string, boolean, date, array
     allowed_values TEXT,     -- comma-separated or JSON string for enums
-    unit TEXT,
-    applicable_nodes TEXT    -- JSON array of node IDs (nodes that can have this attribute)
+    unit TEXT
 );
 
 -- Nodes
@@ -53,6 +52,17 @@ CREATE TABLE node_attributes (
     FOREIGN KEY(attribute_id) REFERENCES attributes(id)
 );
 
+CREATE TABLE IF NOT EXISTS possible_node_attributes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    node_id INTEGER NOT NULL,
+    attribute_id INTEGER NOT NULL,
+    FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (attribute_id) REFERENCES attributes(id) ON DELETE CASCADE,
+    UNIQUE(node_id, attribute_id) -- prevents duplicates
+);
+
+
+
 -- Insert commonly used relations
 INSERT INTO relation_types (name, inverse_name, is_symmetric, is_transitive, description) VALUES
 ('is_part_of', 'has_part', 'no', 'no', 'Indicates that an entity is a component of a larger entity. Example: An electron is_part_of an atom.'),
@@ -97,3 +107,43 @@ INSERT INTO relation_types (name, inverse_name, is_symmetric, is_transitive, des
 ('is_oxidized_by', 'reduces', 'no', 'no', 'Denotes a substance losing electrons. Example: Iron is_oxidized_by oxygen in rusting.'),
 ('reduces', 'is_oxidized_by', 'no', 'no', 'Indicates a substance gaining electrons. Example: Oxygen reduces iron in rusting.');
 
+INSERT INTO attributes (name, data_type, allowed_values, unit, description) VALUES
+('mass', 'float', '', 'kilogram (kg)', 'Measures the amount of matter in an object. Example: A planet has a mass of 5.972 × 10^24 kg.'),
+('velocity', 'float', '', 'meters per second (m/s)', 'Describes the rate of change of position. Example: A car has a velocity of 20 m/s.'),
+('energy', 'float', '', 'joule (J)', 'Quantifies the capacity to do work. Example: A photon carries energy of 2.0 × 10^-19 J.'),
+('charge', 'float', '', 'coulomb (C)', 'Measures electric charge. Example: An electron has a charge of -1.602 × 10^-19 C.'),
+('temperature', 'float', '', 'kelvin (K)', 'Indicates thermal energy level. Example: Water boils at a temperature of 373.15 K at standard pressure.'),
+('concentration', 'float', '', 'moles per liter (mol/L)', 'Measures solute amount per unit volume. Example: A saline solution has a concentration of 0.9 mol/L NaCl.'),
+('pH', 'float', '0 to 14', '', 'Measures acidity or basicity. Example: Lemon juice has a pH of 2.0.'),
+('wavelength', 'float', '', 'nanometer (nm)', 'Distance between wave peaks. Example: Blue light has a wavelength of 450 nm.'),
+('frequency', 'float', '', 'hertz (Hz)', 'Number of wave cycles per second. Example: A radio wave has a frequency of 100 MHz.'),
+('volume', 'float', '', 'cubic meter (m³)', 'Measures space occupied. Example: A container has a volume of 0.001 m³.'),
+('density', 'float', '', 'kilogram per cubic meter (kg/m³)', 'Mass per unit volume. Example: Water has a density of 1000 kg/m³.'),
+('atomic_number', 'integer', '', 'none', 'Number of protons in an atom’s nucleus. Example: Carbon has an atomic_number of 6.'),
+('molecular_weight', 'float', '', 'grams per mole (g/mol)', 'Mass of one mole of a substance. Example: Water has a molecular_weight of 18.015 g/mol.'),
+('gene_length', 'integer', '', 'base pairs (bp)', 'Number of nucleotide base pairs in a gene. Example: The CFTR gene has a gene_length of 250,000 bp.'),
+('expression_level', 'float', '', 'none', 'Quantifies gene or protein activity. Example: A gene has an expression_level of 5.2 in liver cells.'),
+('cardinality', 'integer', '', 'none', 'Number of elements in a set. Example: The set {1, 2, 3} has a cardinality of 3.'),
+('dimension', 'integer', '', 'none', 'Number of independent coordinates. Example: A cube has a dimension of 3.'),
+('area', 'float', '', 'square meter (m²)', 'Measures surface extent. Example: A rectangle has an area of 12 m².'),
+('angle', 'float', '', 'radian (rad)', 'Measures rotation between two rays. Example: A right angle has an angle of π/2 rad.'),
+('entropy', 'float', '', 'joules per kelvin (J/K)', 'Measures disorder or uncertainty. Example: A gas system has an entropy of 50 J/K.'),
+('mutation_rate', 'float', '', 'mutations per generation', 'Frequency of genetic mutations. Example: A gene has a mutation_rate of 10^-8 mutations per generation.'),
+('cell_size', 'float', '', 'micrometer (µm)', 'Physical size of a cell. Example: A red blood cell has a cell_size of 7 µm in diameter.'),
+('replication_rate', 'float', '', 'cells per hour', 'Rate of cell division. Example: E. coli has a replication_rate of 2 cells per hour under optimal conditions.'),
+('photosynthetic_efficiency', 'float', '0 to 1', 'none', 'Fraction of light energy converted to chemical energy. Example: A plant has a photosynthetic_efficiency of 0.06.'),
+('metabolic_rate', 'float', '', 'watts (W)', 'Rate of energy expenditure. Example: A human has a metabolic_rate of 100 W at rest.'),
+('chromosome_number', 'integer', '', 'none', 'Number of chromosomes in a cell. Example: Humans have a chromosome_number of 46.'),
+('electronegativity', 'float', '', 'none', 'Tendency to attract electrons. Example: Fluorine has an electronegativity of 3.98.'),
+('boiling_point', 'float', '', 'kelvin (K)', 'Temperature at which a substance boils. Example: Water has a boiling_point of 373.15 K.'),
+('solubility', 'float', '', 'grams per liter (g/L)', 'Amount of solute that dissolves in a solvent. Example: NaCl has a solubility of 360 g/L in water.'),
+('reaction_rate', 'float', '', 'moles per liter per second (mol/L/s)', 'Speed of a chemical reaction. Example: A reaction has a reaction_rate of 0.01 mol/L/s.'),
+('bond_dissociation_energy', 'float', '', 'kilojoules per mole (kJ/mol)', 'Energy required to break a bond. Example: The C-H bond has a bond_dissociation_energy of 413 kJ/mol.'),
+('elevation', 'float', '', 'meters (m)', 'Height above sea level. Example: Mount Everest has an elevation of 8,848 m.'),
+('latitude', 'float', '-90 to 90', 'degrees (°)', 'Angular distance north or south of the equator. Example: New York City has a latitude of 40.7128° N.'),
+('longitude', 'float', '-180 to 180', 'degrees (°)', 'Angular distance east or west of the prime meridian. Example: New York City has a longitude of 74.0060° W.'),
+('precipitation', 'float', '', 'millimeters per year (mm/yr)', 'Amount of rainfall or snowfall. Example: The Amazon rainforest has a precipitation of 2,000 mm/yr.'),
+('surface_area', 'float', '', 'square kilometer (km²)', 'Extent of a surface. Example: Lake Superior has a surface_area of 82,100 km².'),
+('population_density', 'float', '', 'people per square kilometer (people/km²)', 'Number of people per unit area. Example: Tokyo has a population_density of 6,224 people/km².'),
+('soil_ph', 'float', '0 to 14', '', 'Acidity or basicity of soil. Example: A farmland has a soil_ph of 6.5.'),
+('tectonic_plate_velocity', 'float', '', 'centimeters per year (cm/yr)', 'Speed of plate movement. Example: The Pacific Plate has a tectonic_plate_velocity of 7 cm/yr.');

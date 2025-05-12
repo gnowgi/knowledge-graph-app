@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from dotenv import load_dotenv
 import sqlite3
 import openai
@@ -508,6 +508,99 @@ def delete_node_attribute(na_id):
     conn.close()
     return jsonify({"success": True})
 
+# Handles GET /api/nodes/<node_id>/possible-attributes
+@app.route('/api/nodes/<int:node_id>/possible-attributes', methods=['GET'])
+def get_possible_attributes(node_id):
+    db = get_db()
+    direct = db.execute(
+        '''
+        SELECT a.* FROM attributes a
+        JOIN possible_node_attributes pna ON a.id = pna.attribute_id
+        WHERE pna.node_id = ?
+        ''',
+        (node_id,)
+    ).fetchall()
+
+    # Fix: inherited attributes should come from parent (target_node_id) of "is_a" relation
+    inherited = db.execute(
+        '''
+        SELECT DISTINCT a.* FROM attributes a
+        JOIN possible_node_attributes pna ON a.id = pna.attribute_id
+        JOIN relations r ON r.target_node_id = pna.node_id
+        WHERE r.source_node_id = ? AND r.relation_type_id = (
+            SELECT id FROM relation_types WHERE name = 'is_a' OR name = 'is a' LIMIT 1
+        )
+        ''',
+        (node_id,)
+    ).fetchall()
+
+    return jsonify({
+        'direct': [dict(row) for row in direct],
+        'inherited': [dict(row) for row in inherited]
+    })
+
+# Handles POST /api/nodes/<node_id>/possible-attributes
+@app.route('/api/nodes/<int:node_id>/possible-attributes', methods=['POST'])
+def assign_possible_attributes(node_id):
+    data = request.get_json()
+    attribute_ids = data.get('attribute_ids', [])
+    
+    db = get_db()
+    for attr_id in attribute_ids:
+        try:
+            db.execute(
+                'INSERT OR IGNORE INTO possible_node_attributes (node_id, attribute_id) VALUES (?, ?)',
+                (node_id, attr_id)
+            )
+        except Exception as e:
+            print(f"Error assigning attribute {attr_id}: {e}")
+            continue
+    db.commit()
+    return jsonify({'status': 'success', 'assigned': attribute_ids})
+
+# Handles DELETE /api/nodes/<node_id>/possible-attributes/<attribute_id>
+@app.route('/api/nodes/<int:node_id>/possible-attributes/<int:attribute_id>', methods=['DELETE'])
+def delete_possible_attribute(node_id, attribute_id):
+    # ...existing code...
+    return jsonify({'status': 'deleted', 'node_id': node_id, 'attribute_id': attribute_id})
+
+@app.route("/api/node/<int:node_id>", methods=["GET"])
+def get_node(node_id):
+    conn = sqlite3.connect(config.DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT id, title, summary, is_instance FROM nodes WHERE id=?", (node_id,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "Node not found"}), 404
+    return jsonify({"id": row[0], "label": row[1], "summary": row[2], "is_instance": bool(row[3])})
+
+def get_db():
+    if 'db' not in g:
+        g.db = sqlite3.connect(config.DB_PATH)
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+@app.teardown_appcontext
+def close_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+@app.route("/api/relation-type/<int:type_id>", methods=["DELETE"])
+def delete_relation_type(type_id):
+    conn = sqlite3.connect(config.DB_PATH)
+    cur = conn.cursor()
+    # Check if any relations use this relation type
+    cur.execute("SELECT COUNT(*) FROM relations WHERE relation_type_id=?", (type_id,))
+    count = cur.fetchone()[0]
+    if count > 0:
+        conn.close()
+        return jsonify({"success": False, "message": "Cannot delete: relation type is in use."}), 409
+    cur.execute("DELETE FROM relation_types WHERE id=?", (type_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(debug=True)

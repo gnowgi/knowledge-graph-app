@@ -30,10 +30,10 @@ export default function AttributeManager() {
   const [attributes, setAttributes] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [newAttr, setNewAttr] = useState({
-    name: '', description: '', data_type: 'string', allowed_values: '', unit: '', applicable_nodes: []
+    name: '', description: '', data_type: 'string', allowed_values: '', unit: ''
   });
   const [editId, setEditId] = useState(null);
-  const [editData, setEditData] = useState({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '', applicable_nodes: [] });
+  const [editData, setEditData] = useState({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '' });
 
   useEffect(() => {
     fetchAttributes();
@@ -55,10 +55,7 @@ export default function AttributeManager() {
   async function handleAdd() {
     if (!newAttr.name.trim() || !newAttr.data_type) return;
     const payload = {
-      ...newAttr,
-      applicable_nodes: Array.isArray(newAttr.applicable_nodes)
-        ? newAttr.applicable_nodes.map(id => Number(id))
-        : []
+      ...newAttr
     };
     const res = await fetch('/api/attribute', {
       method: 'POST',
@@ -66,7 +63,7 @@ export default function AttributeManager() {
       body: JSON.stringify(payload)
     });
     if (res.ok) {
-      setNewAttr({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '', applicable_nodes: [] });
+      setNewAttr({ name: '', description: '', data_type: 'string', allowed_values: '', unit: '' });
       fetchAttributes();
     } else {
       alert('Error adding attribute.');
@@ -75,10 +72,7 @@ export default function AttributeManager() {
 
   async function handleUpdate(id) {
     const payload = {
-      ...editData,
-      applicable_nodes: Array.isArray(editData.applicable_nodes)
-        ? editData.applicable_nodes.map(id => Number(id))
-        : []
+      ...editData
     };
     const res = await fetch(`/api/attribute/${id}`, {
       method: 'PATCH',
@@ -140,12 +134,6 @@ export default function AttributeManager() {
           onChange={e => setNewAttr({ ...newAttr, unit: e.target.value })}
           style={{ marginRight: 8 }}
         />
-        <MultiSelectInput
-          value={newAttr.applicable_nodes}
-          onChange={val => setNewAttr({ ...newAttr, applicable_nodes: val })}
-          options={nodes}
-          placeholder="Choose applicable nodes"
-        />
         <button onClick={handleAdd}>Add</button>
       </div>
       <hr />
@@ -157,7 +145,6 @@ export default function AttributeManager() {
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Type</th>
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Allowed Values</th>
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Unit</th>
-            <th style={{ paddingRight: 24, textAlign: 'left' }}>Applicable Nodes</th>
             <th style={{ paddingRight: 24, textAlign: 'left' }}>Actions</th>
           </tr>
         </thead>

@@ -4,11 +4,13 @@ import RelationTypeManager from './RelationTypeManager';
 import RelationCreator from './RelationCreator';
 import AttributeManager from './AttributeManager';
 import PropertyCreator from './PropertyCreator';
+import NodeManager from './NodeManager'; // 
 
 export default function App() {
   const [tab, setTab] = useState("map");
   const [relationRefreshKey, setRelationRefreshKey] = useState(0);
   const [difficulty, setDifficulty] = useState('easy');
+  const [selectedNodeId, setSelectedNodeId] = useState(1); // Default nodeId for testing
 
   return (
     <div style={{ width: '100vw', height: '100vh', fontFamily: 'sans-serif' }}>
@@ -36,32 +38,38 @@ export default function App() {
           </select>
         </div>
       </div>
+
       <div className="tabs-bar" style={{ justifyContent: 'flex-start', paddingLeft: 32 }}>
-        <button
-          onClick={() => setTab("map")}
-          className={tab === "map" ? "active-tab" : ""}
-          style={{ marginRight: '10px' }}
-        >
+        <button onClick={() => setTab("map")} className={tab === "map" ? "active-tab" : ""} style={{ marginRight: '10px' }}>
           Knowledge Map
         </button>
-        <button
-          onClick={() => setTab("relations")}
-          className={tab === "relations" ? "active-tab" : ""}
-        >Relation Names</button>
-        <button
-          onClick={() => setTab("attributes")}
-          className={tab === "attributes" ? "active-tab" : ""}
-        >Attribute Names</button>
+        <button onClick={() => setTab("relations")} className={tab === "relations" ? "active-tab" : ""}>
+          Relation Names
+        </button>
+        <button onClick={() => setTab("attributes")} className={tab === "attributes" ? "active-tab" : ""}>
+          Attribute Names
+        </button>
+        <button onClick={() => setTab("node")} className={tab === "node" ? "active-tab" : ""}>
+          Node Manager
+        </button>
       </div>
+
       {tab === "map" && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', paddingLeft: 32 }}>
           <RelationCreator onRelationCreated={() => setRelationRefreshKey(k => k + 1)} difficulty={difficulty} />
           <PropertyCreator difficulty={difficulty} />
         </div>
       )}
-      {tab === "map" ? <GraphView relationRefreshKey={relationRefreshKey} /> :
-        tab === "relations" ? <RelationTypeManager /> :
-        <AttributeManager />}
+
+      {tab === "map" ? (
+        <GraphView relationRefreshKey={relationRefreshKey} />
+      ) : tab === "relations" ? (
+        <RelationTypeManager />
+      ) : tab === "attributes" ? (
+        <AttributeManager />
+      ) : (
+        <NodeManager nodeId={selectedNodeId} /> // 🆕 Show NodeManager tab
+      )}
     </div>
   );
 }
