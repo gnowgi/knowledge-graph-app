@@ -29,14 +29,6 @@ export default function App() {
         >
           Knowledge Network
         </h1>
-        <div className="difficulty-selector" style={{ display: 'flex', alignItems: 'center', marginLeft: 100 }}>
-          <label style={{ fontWeight: 500, marginRight: 8 }}>Difficulty:</label>
-          <select value={difficulty} onChange={e => setDifficulty(e.target.value)}>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </div>
       </div>
 
       <div className="tabs-bar" style={{ justifyContent: 'flex-start', paddingLeft: 32 }}>
@@ -53,13 +45,6 @@ export default function App() {
           Attribute Properties
         </button>
       </div>
-
-      {tab === "map" && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', paddingLeft: 32 }}>
-          <RelationCreator onRelationCreated={() => setRelationRefreshKey(k => k + 1)} difficulty={difficulty} />
-          <PropertyCreator difficulty={difficulty} />
-        </div>
-      )}
 
       {tab === "map" ? (
         <GraphView relationRefreshKey={relationRefreshKey} />

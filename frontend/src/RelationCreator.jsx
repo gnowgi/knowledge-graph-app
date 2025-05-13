@@ -65,7 +65,10 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
         body: JSON.stringify({
           source: sourceNode.id,
           target: targetNode.id,
-          relation_id: parseInt(relationTypeId)
+          relation_id: parseInt(relationTypeId),
+          modality: difficulty === 'advanced' ? modality : undefined,
+          subject_quantifier: (difficulty === 'medium' || difficulty === 'advanced') ? subjectQuantifier : undefined,
+          object_quantifier: (difficulty === 'medium' || difficulty === 'advanced') ? objectQuantifier : undefined
         })
       });
       setLoading(false);
@@ -73,6 +76,9 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
         setSourceInput("");
         setTargetInput("");
         setRelationTypeId("");
+        setModality('');
+        setSubjectQuantifier('');
+        setObjectQuantifier('');
         if (onRelationCreated) onRelationCreated();
       } else {
         alert('Failed to create relation.');
@@ -82,88 +88,110 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
     }
   };
 
+  // Responsive grid style (always row on desktop, column on mobile)
+  const gridStyle = {
+    display: 'grid',
+    gap: 16,
+    width: '100%',
+    marginBottom: 12,
+    gridTemplateColumns: '1fr', // default: column
+  };
+
+  // Add a media query for desktop
+  const gridMediaStyle = `
+    @media (min-width: 600px) {
+      .relation-card-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+      }
+    }
+  `;
+
+  const cardStyle = {
+    background: '#f8fafd',
+    border: '1px solid #cbe6ff',
+    borderRadius: 8,
+    padding: 18,
+    minWidth: 0,
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start'
+  };
+
   return (
-    <form onSubmit={handleCreate} className="knowledge-form" style={{
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'flex-start',
-      gap: 20,
-      border: '1px solid #ccc',
-      borderRadius: 8,
-      padding: 20,
-      background: '#f8fafd',
-      width: '100%',
-      maxWidth: 'none',
-      boxSizing: 'border-box',
-      marginBottom: 24
-    }}>
-      {/* Modality selector (only in advanced) */}
-      {difficulty === 'advanced' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 120, marginRight: 12 }}>
-          <label style={{ fontWeight: 500, marginBottom: 4 }}>Modality</label>
-          <select value={modality} onChange={e => setModality(e.target.value)}>
-            {MODALITIES.map(m => <option key={m} value={m}>{m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Modality'}</option>)}
-          </select>
-        </div>
-      )}
-      {/* Subject sub-container */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 240, background: '#eef6fa', borderRadius: 6, padding: 12, border: '1px solid #b5c9d6' }}>
-        <label style={{ fontWeight: 500, marginBottom: 4 }}>Subject</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {(difficulty === 'medium' || difficulty === 'advanced') && (
-            <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)}>
-              {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+    <>
+      <style>{gridMediaStyle}</style>
+      <form onSubmit={handleCreate} style={{ width: '100%' }}>
+        <div className="relation-card-grid" style={gridStyle}>
+          {/* Subject Card */}
+          <div style={cardStyle}>
+            <label style={{ fontWeight: 500, marginBottom: 6 }}>Subject</label>
+            {difficulty === 'advanced' && (
+              <div style={{ marginBottom: 8, width: '100%' }}>
+                <label style={{ fontWeight: 500, fontSize: 13 }}>Modality</label>
+                <select value={modality} onChange={e => setModality(e.target.value)} style={{ width: '100%' }}>
+                  {MODALITIES.map(m => <option key={m} value={m}>{m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Modality'}</option>)}
+                </select>
+              </div>
+            )}
+            {(difficulty === 'medium' || difficulty === 'advanced') && (
+              <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)} style={{ marginBottom: 8, width: '100%' }}>
+                {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+              </select>
+            )}
+            <input
+              type="text"
+              placeholder="Choose a subject"
+              value={sourceInput}
+              onChange={e => setSourceInput(e.target.value)}
+              list="source-suggestions"
+              style={{ minWidth: 140, width: '100%' }}
+            />
+            <datalist id="source-suggestions">
+              {allNodes.map(n => (
+                <option key={n.id} value={n.label} />
+              ))}
+            </datalist>
+          </div>
+          {/* Relation Card */}
+          <div style={cardStyle}>
+            <label style={{ fontWeight: 500, marginBottom: 6 }}>Relation</label>
+            <select value={relationTypeId} onChange={e => setRelationTypeId(e.target.value)} style={{ minWidth: 140, width: '100%' }}>
+              <option value=''>Choose relation name</option>
+              {relationTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.name}</option>)}
             </select>
-          )}
-          <input
-            type="text"
-            placeholder="Choose a subject"
-            value={sourceInput}
-            onChange={e => setSourceInput(e.target.value)}
-            list="source-suggestions"
-            style={{ minWidth: 140 }}
-          />
-          <datalist id="source-suggestions">
-            {allNodes.map(n => (
-              <option key={n.id} value={n.label} />
-            ))}
-          </datalist>
+          </div>
+          {/* Object Card */}
+          <div style={cardStyle}>
+            <label style={{ fontWeight: 500, marginBottom: 6 }}>Object</label>
+            {(difficulty === 'medium' || difficulty === 'advanced') && (
+              <select value={objectQuantifier} onChange={e => setObjectQuantifier(e.target.value)} style={{ marginBottom: 8, width: '100%' }}>
+                {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+              </select>
+            )}
+            <input
+              type="text"
+              placeholder="Choose an object"
+              value={targetInput}
+              onChange={e => setTargetInput(e.target.value)}
+              list="target-suggestions"
+              style={{ minWidth: 140, width: '100%' }}
+            />
+            <datalist id="target-suggestions">
+              {allNodes.map(n => (
+                <option key={n.id} value={n.label} />
+              ))}
+            </datalist>
+            <button
+              type='submit'
+              disabled={loading}
+              style={{ marginTop: 16, height: 40, alignSelf: 'flex-end', minWidth: 120 }}
+            >
+              {loading ? 'Creating...' : 'Add Relation'}
+            </button>
+          </div>
         </div>
-      </div>
-      {/* Relation type */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 200 }}>
-        <label style={{ fontWeight: 500, marginBottom: 4 }}>Relation</label>
-        <select value={relationTypeId} onChange={e => setRelationTypeId(e.target.value)} style={{ minWidth: 140 }}>
-          <option value=''>Choose relation name</option>
-          {relationTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.name}</option>)}
-        </select>
-      </div>
-      {/* Object sub-container */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 240, background: '#eef6fa', borderRadius: 6, padding: 12, border: '1px solid #b5c9d6' }}>
-        <label style={{ fontWeight: 500, marginBottom: 4 }}>Object</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {(difficulty === 'medium' || difficulty === 'advanced') && (
-            <select value={objectQuantifier} onChange={e => setObjectQuantifier(e.target.value)}>
-              {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
-            </select>
-          )}
-          <input
-            type="text"
-            placeholder="Choose an object"
-            value={targetInput}
-            onChange={e => setTargetInput(e.target.value)}
-            list="target-suggestions"
-            style={{ minWidth: 140 }}
-          />
-          <datalist id="target-suggestions">
-            {allNodes.map(n => (
-              <option key={n.id} value={n.label} />
-            ))}
-          </datalist>
-        </div>
-      </div>
-      <button type='submit' disabled={loading} style={{ marginTop: 16, height: 40 }}>{loading ? 'Creating...' : 'Add Relation'}</button>
-    </form>
+      </form>
+    </>
   );
 }

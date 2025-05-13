@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import NodeProperties from './NodeProperties'; // Import the NodeProperties component
+import NodeProperties from './NodeProperties';
+import RelationCreator from './RelationCreator';
+import PropertyCreator from './PropertyCreator';
 
 export default function GraphView({ relationRefreshKey }) {
   const svgRef = useRef();
@@ -18,16 +20,12 @@ export default function GraphView({ relationRefreshKey }) {
   const [sidebarTab, setSidebarTab] = useState('nodes'); // 'nodes' or 'props'
   const [editNodeId, setEditNodeId] = useState(null);
   const [editNodeData, setEditNodeData] = useState({ label: '', summary: '' });
+  const [creatorTab, setCreatorTab] = useState('relation'); // 'relation' or 'property'
+  const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'advanced'
 
   useEffect(() => {
-    fetch('/api/node/1/neighbors')
-      .then(res => res.json())
-      .then(({ nodes, links }) => {
-        setNodes(nodes);
-        setLinks(links);
-        drawGraph(nodes, links);
-      });
-
+    // Removed initial fetch for /api/node/1/neighbors
+    // Only fetch allNodes, relationTypes, and relationList
     fetch('/api/nodes').then(res => res.json()).then(data => {
       // Normalize IDs to numbers
       setAllNodes(data.map(n => ({ ...n, id: Number(n.id) })));
@@ -58,7 +56,7 @@ export default function GraphView({ relationRefreshKey }) {
     const formHeight = 100; // Height of the Build Knowledge form (adjust as needed)
     const width = window.innerWidth - sidebarWidth;
     const height = window.innerHeight - headerHeight - formHeight;
-    svg.attr('viewBox', `-100 -100 ${window.innerWidth} ${window.innerHeight}`)
+    svg.attr('viewBox', `-400 -400 ${window.innerWidth} ${window.innerHeight}`)
       .attr('preserveAspectRatio', 'xMinYMin meet');
 
     // Arrow marker for links (adjusted for rectangles, larger and more visible)
@@ -659,176 +657,440 @@ export default function GraphView({ relationRefreshKey }) {
     expandedNodes.current = new Set();
   };
 
-  return (
-    <div style={{ width: '100%', height: 'calc(100% - 45px)', display: 'flex' }}>
-      <div className="sidebar">
-        {/* Logo and title clickable for reload */}
-        <div
-          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: 16 }}
-          onClick={resetDefaultView}
-        >
-        </div>
-        {/* ...existing code... */}
-        {selectedNode ? (
-          <div>
-            <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
-            <NodeProperties nodeId={selectedNode.id} />
-            {selectedNode.summary && <><strong>Summary:</strong> <p>{selectedNode.summary}</p></>}
-            {/* Propositions involving this node (from relationList) */}
-            <div style={{ marginTop: 12 }}>
-              <strong>Propositions:</strong>
-              <ul style={{ paddingLeft: 18, margin: 0 }}>
-                {
-                  // Only show propositions where selectedNode is subject or object
-                  relationList.filter(r => r.source === selectedNode.id || r.target === selectedNode.id).length === 0 && (
-                    <li style={{ color: '#888' }}>No propositions found.</li>
-                  )
-                }
-                {
-                  relationList
-                    .filter(r => r.source === selectedNode.id || r.target === selectedNode.id)
-                    .map((r, idx) => {
-                      if (r.source === selectedNode.id) {
-                        // selected node is subject
-                        return (
-                          <li key={r.id || idx}>
-                            <span style={{ fontWeight: 500 }}>{selectedNode.label}</span> {r.label} {r.target_label}
-                          </li>
-                        );
-                      } else {
-                        // selected node is object
-                        return (
-                          <li key={r.id || idx}>
-                            {r.source_label} {r.label} <span style={{ fontWeight: 500 }}>{selectedNode.label}</span>
-                          </li>
-                        );
-                      }
-                    })
-                }
-              </ul>
-            </div>
-          </div>
-        ) : (
-          <div>Select a Node or Proposition</div>
-        )}
+  // Optionally, add handlers to refresh graph after creation
+  const handleRelationCreated = () => {
+    fetch('/api/relations').then(res => res.json()).then(setRelationList);
+  };
+  const handlePropertyAdded = () => {
+    // Optionally refresh node properties or graph
+  };
 
-        <hr />
-        {/* Removed Create New Node form as node creation is now handled in the relation builder */}
-        <hr />
-        <div className="sidebar-tabs">
+  return (
+    <div style={{ width: '100%', height: 'calc(100% - 45px)', display: 'flex', flexDirection: 'column' }}>
+      {/* Difficulty selector */}
+      <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, marginLeft: 24 }}>
+        <span style={{ marginRight: 8, fontWeight: 500 }}>Mode:</span>
+        <select
+          value={difficulty}
+          onChange={e => setDifficulty(e.target.value)}
+          style={{ padding: '4px 12px', borderRadius: 4, border: '1px solid #b5d6f7' }}
+        >
+          <option value="easy">Easy</option>
+          <option value="medium">Medium (Quantifiers)</option>
+          <option value="advanced">Advanced (Quantifiers + Modality)</option>
+        </select>
+      </div>
+      {/* Unified Tabs Row (Creator + All Nodes/Props) */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        margin: '16px 0 0 24px', // <-- left offset is 24px
+      }}>
+        <div style={{
+          display: 'flex',
+          background: '#fff',
+          borderRadius: 8,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          overflow: 'hidden',
+          border: '1px solid #e3f6fc'
+        }}>
           <button
-            onClick={() => setSidebarTab('nodes')}
-            className={sidebarTab === 'nodes' ? 'active' : ''}
+            onClick={() => setCreatorTab('relation')}
+            style={{
+              padding: '10px 24px',
+              background: creatorTab === 'relation' ? '#e3f6fc' : '#fff',
+              border: 'none',
+              borderBottom: creatorTab === 'relation' ? '2px solid #1976d2' : 'none',
+              fontWeight: 600,
+              color: creatorTab === 'relation' ? '#1976d2' : '#333',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            Create Relation
+          </button>
+          <button
+            onClick={() => setCreatorTab('property')}
+            style={{
+              padding: '10px 24px',
+              background: creatorTab === 'property' ? '#e3f6fc' : '#fff',
+              border: 'none',
+              borderBottom: creatorTab === 'property' ? '2px solid #1976d2' : 'none',
+              fontWeight: 600,
+              color: creatorTab === 'property' ? '#1976d2' : '#333',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            Create Property
+          </button>
+          <button
+            onClick={() => setCreatorTab('nodes')}
+            style={{
+              padding: '10px 24px',
+              background: creatorTab === 'nodes' ? '#e3f6fc' : '#fff',
+              border: 'none',
+              borderBottom: creatorTab === 'nodes' ? '2px solid #1976d2' : 'none',
+              fontWeight: 600,
+              color: creatorTab === 'nodes' ? '#1976d2' : '#333',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
           >
             All Nodes
           </button>
           <button
-            onClick={() => setSidebarTab('props')}
-            className={sidebarTab === 'props' ? 'active' : ''}
+            onClick={() => setCreatorTab('props')}
+            style={{
+              padding: '10px 24px',
+              background: creatorTab === 'props' ? '#e3f6fc' : '#fff',
+              border: 'none',
+              borderBottom: creatorTab === 'props' ? '2px solid #1976d2' : 'none',
+              fontWeight: 600,
+              color: creatorTab === 'props' ? '#1976d2' : '#333',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
           >
             All Propositions
           </button>
         </div>
-        {sidebarTab === 'nodes' && (
-          <>
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '100%', marginBottom: '8px' }}
-            />
-            <div className="node-list">
-              {[...allNodes].sort((a, b) => b.id - a.id)
-                .filter(n => n.label.toLowerCase().includes(searchQuery.toLowerCase()))
-                .map(n => (
-                  <div
-                    key={n.id}
-                    className={`node-list-item${selectedNode?.id === n.id ? ' selected' : ''}`}
-                    onClick={() => showNodeAndNeighbors(n.id)}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                      <span style={n.is_instance ? { textDecoration: 'underline', textDecorationThickness: '2px' } : {}}>{n.label}</span>
-                      <div className="actions">
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            setEditNodeId(n.id);
-                            setEditNodeData({ label: n.label, summary: n.summary || '' });
-                          }}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleDeleteNode(n.id);
-                          }}
-                        >
-                          🗑
-                        </button>
-                      </div>
-                    </div>
-                    {editNodeId === n.id && (
-                      <form
-                        className="edit-node-form"
-                        onSubmit={async e => {
-                          e.preventDefault();
-                          const res = await fetch('/api/node/update', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: n.id, title: editNodeData.label, summary: editNodeData.summary })
-                          });
-                          if (res.ok) {
-                            setAllNodes(allNodes.map(node => node.id === n.id ? { ...node, label: editNodeData.label, summary: editNodeData.summary } : node));
-                            setNodes(nodes.map(node => node.id === n.id ? { ...node, label: editNodeData.label, summary: editNodeData.summary } : node));
-                            setEditNodeId(null);
-                          } else {
-                            alert('Failed to update node.');
-                          }
-                        }}
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <input
-                          type="text"
-                          value={editNodeData.label}
-                          onChange={e => setEditNodeData({ ...editNodeData, label: e.target.value })}
-                          required
-                        />
-                        <textarea
-                          value={editNodeData.summary}
-                          onChange={e => setEditNodeData({ ...editNodeData, summary: e.target.value })}
-                          rows={2}
-                          placeholder="Summary (optional)"
-                        />
-                        <div className="form-actions">
-                          <button type="submit">Save</button>
-                          <button type="button" onClick={() => setEditNodeId(null)}>Cancel</button>
-                        </div>
-                      </form>
-                    )}
-                  </div>
-                ))}
+      </div>
+      {/* Creator Card Content or Listing Card */}
+      {(creatorTab === 'relation' || creatorTab === 'property') && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          margin: '0 0 8px 24px', // <-- left offset is 24px
+          minHeight: 0,
+          paddingTop: 2,
+          paddingBottom: 2
+        }}>
+          {creatorTab === 'relation' && (
+            <div style={{
+              background: '#f7fbff',
+              border: '1px solid #cbe6ff',
+              borderRadius: 8,
+              padding: '8px 12px', // reduce vertical padding
+              minWidth: 300, // restore previous width
+              maxWidth: 600, // restore previous width
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              marginRight: 8,
+              minHeight: 0
+            }}>
+              <RelationCreator
+                onRelationCreated={handleRelationCreated}
+                difficulty={difficulty}
+              />
             </div>
-          </>
+          )}
+          {creatorTab === 'property' && (
+            <div style={{
+              background: '#f7fbff',
+              border: '1px solid #cbe6ff',
+              borderRadius: 8,
+              padding: '8px 12px', // reduce vertical padding
+              minWidth: 300, // restore previous width
+              maxWidth: 600, // restore previous width
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              marginLeft: 8,
+              minHeight: 0
+            }}>
+              <PropertyCreator
+                onPropertyAdded={handlePropertyAdded}
+                difficulty={difficulty}
+              />
+            </div>
+          )}
+        </div>
+      )}
+      {(creatorTab === 'nodes' || creatorTab === 'props') && (
+        <div style={{
+          background: '#f7fbff',
+          border: '1px solid #cbe6ff',
+          borderRadius: 8,
+          padding: 10,
+          margin: '0 0 12px 24px', // <-- left offset is 24px
+          minWidth: 160,
+          maxWidth: 900,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          minHeight: 0,
+          maxHeight: 220,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {creatorTab === 'nodes' && (
+            <>
+              <input
+                type="text"
+                placeholder="Search nodes..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ width: '100%', marginBottom: '8px' }}
+              />
+              {/* Only show cards for matched nodes */}
+              {searchQuery.trim() && (
+                <div className="node-list" style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  overflowY: 'auto',
+                  maxHeight: 150 // fits within parent card, adjust as needed
+                }}>
+                  {[...allNodes].sort((a, b) => b.id - a.id)
+                    .filter(n => n.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(n => (
+                      <div
+                        key={n.id}
+                        className={`node-list-item${selectedNode?.id === n.id ? ' selected' : ''}`}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #e3f6fc',
+                          borderRadius: 6,
+                          padding: 8,
+                          marginBottom: 2,
+                          cursor: 'pointer',
+                          fontSize: 14,
+                          minHeight: 36,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                        onClick={() => showNodeAndNeighbors(n.id)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                          <span style={n.is_instance ? { textDecoration: 'underline', textDecorationThickness: '2px' } : {}}>{n.label}</span>
+                          <div className="actions">
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                setEditNodeId(n.id);
+                                setEditNodeData({ label: n.label, summary: n.summary || '' });
+                              }}
+                              style={{ fontSize: 13, padding: '0 4px' }}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleDeleteNode(n.id);
+                              }}
+                              style={{ fontSize: 13, padding: '0 4px' }}
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        </div>
+                        {editNodeId === n.id && (
+                          <form
+                            className="edit-node-form"
+                            onSubmit={async e => {
+                              e.preventDefault();
+                              const res = await fetch('/api/node/update', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: n.id, title: editNodeData.label, summary: editNodeData.summary })
+                              });
+                              if (res.ok) {
+                                setAllNodes(allNodes.map(node => node.id === n.id ? { ...node, label: editNodeData.label, summary: editNodeData.summary } : node));
+                                setNodes(nodes.map(node => node.id === n.id ? { ...node, label: editNodeData.label, summary: editNodeData.summary } : node));
+                                setEditNodeId(null);
+                              } else {
+                                alert('Failed to update node.');
+                              }
+                            }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <input
+                              type="text"
+                              value={editNodeData.label}
+                              onChange={e => setEditNodeData({ ...editNodeData, label: e.target.value })}
+                              required
+                              style={{ fontSize: 13, marginBottom: 2 }}
+                            />
+                            <textarea
+                              value={editNodeData.summary}
+                              onChange={e => setEditNodeData({ ...editNodeData, summary: e.target.value })}
+                              rows={2}
+                              placeholder="Summary (optional)"
+                              style={{ fontSize: 13, marginBottom: 2 }}
+                            />
+                            <div className="form-actions">
+                              <button type="submit" style={{ fontSize: 13, marginRight: 4 }}>Save</button>
+                              <button type="button" onClick={() => setEditNodeId(null)} style={{ fontSize: 13 }}>Cancel</button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    ))}
+                  {/* If no matches, show a message */}
+                  {
+                    [...allNodes].filter(n => n.label.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 &&
+                    <div style={{ color: '#888', padding: 8 }}>No nodes found.</div>
+                  }
+                </div>
+              )}
+            </>
+          )}
+          {creatorTab === 'props' && (
+            <>
+              <input
+                type="text"
+                placeholder="Search propositions..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ width: '100%', marginBottom: '8px' }}
+              />
+              {/* Only show cards for matched propositions */}
+              {searchQuery.trim() && (
+                <div className="prop-list" style={{
+                  fontSize: '0.95em',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  overflowY: 'auto',
+                  maxHeight: 150 // fits within parent card, adjust as needed
+                }}>
+                  {relationList
+                    .filter(r =>
+                      r.source_label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      r.target_label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      r.label?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((r, idx) => (
+                      <div key={r.id || `${r.source_label}->${r.label}->${r.target_label}->${idx}`}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #e3f6fc',
+                          borderRadius: 6,
+                          padding: 8,
+                          marginBottom: 2,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          minHeight: 36
+                        }}
+                        onClick={() => showRelation(r)}
+                      >
+                        <span>{r.source_label} {r.label} {r.target_label}</span>
+                        {r.id && (
+                          <button onClick={e => { e.stopPropagation(); handleDeleteRelation(r.id); }} style={{ marginLeft: '10px', fontSize: 13, padding: '0 4px' }}>🗑</button>
+                        )}
+                      </div>
+                    ))}
+                  {/* If no matches, show a message */}
+                  {
+                    relationList.filter(r =>
+                      r.source_label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      r.target_label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      r.label?.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length === 0 &&
+                    <div style={{ color: '#888', padding: 8 }}>No propositions found.</div>
+                  }
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {/* Main GraphView layout */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          minHeight: 0,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+        }}
+      >
+        {/* Node info card: show only if a node is selected */}
+        {selectedNode && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: 16,
+              marginLeft: 24,
+              marginBottom: 0,
+              marginTop: 0,
+              marginRight: 0,
+              flexWrap: 'wrap',
+              width: '100%',
+            }}
+          >
+            {/* Node Info Card */}
+            <div
+              style={{
+                minWidth: 260,
+                maxWidth: 340,
+                background: '#fff',
+                border: '1px solid #e3f6fc',
+                borderRadius: 8,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                padding: 16,
+                marginBottom: 0,
+                marginTop: 0,
+                flex: '1 1 260px',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
+              <NodeProperties nodeId={selectedNode.id} />
+              {selectedNode.summary && (
+                <>
+                  <strong>Summary:</strong>
+                  <p>{selectedNode.summary}</p>
+                </>
+              )}
+            </div>
+            {/* SVG Graph Card */}
+            <div
+              style={{
+                flex: 1,
+                marginTop: 1,
+                marginRight: 24,
+                background: '#f7fbff',
+                border: '1px solid #cbe6ff',
+                borderRadius: 8,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                padding: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0,
+                // Responsive: stack below on mobile
+                minWidth: 260,
+                width: '100%',
+                maxWidth: '100%',
+              }}
+            >
+              <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1 }} />
+            </div>
+          </div>
         )}
-        {sidebarTab === 'props' && (
-          <div className="prop-list" style={{ fontSize: '0.9em' }}>
-            {relationList.map((r, idx) => (
-              <div key={r.id || `${r.source_label}->${r.label}->${r.target_label}->${idx}`}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', cursor: 'pointer' }}
-                onClick={() => showRelation(r)}
-              >
-                <span>{r.source_label} {r.label} {r.target_label}</span>
-                {r.id && (
-                  <button onClick={e => { e.stopPropagation(); handleDeleteRelation(r.id); }} style={{ marginLeft: '10px' }}>🗑</button>
-                )}
-              </div>
-            ))}
+        {!selectedNode && (
+          <div
+            style={{
+              flex: 1,
+              marginTop: 1,
+              marginRight: 24,
+              background: '#f7fbff',
+              border: '1px solid #cbe6ff',
+              borderRadius: 8,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              padding: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
+          >
+            <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1 }} />
           </div>
         )}
       </div>
-      <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1, marginTop: 45 }} />
     </div>
   );
 }
