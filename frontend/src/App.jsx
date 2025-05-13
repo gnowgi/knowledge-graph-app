@@ -27,7 +27,7 @@ export default function App() {
           style={{ cursor: 'pointer', marginLeft: 8 }}
           onClick={() => window.location.reload()}
         >
-          Knowledge Builder
+          Knowledge Network
         </h1>
         <div className="difficulty-selector" style={{ display: 'flex', alignItems: 'center', marginLeft: 100 }}>
           <label style={{ fontWeight: 500, marginRight: 8 }}>Difficulty:</label>
@@ -41,16 +41,16 @@ export default function App() {
 
       <div className="tabs-bar" style={{ justifyContent: 'flex-start', paddingLeft: 32 }}>
         <button onClick={() => setTab("map")} className={tab === "map" ? "active-tab" : ""} style={{ marginRight: '10px' }}>
-          Knowledge Map
-        </button>
-        <button onClick={() => setTab("relations")} className={tab === "relations" ? "active-tab" : ""}>
-          Relation Names
-        </button>
-        <button onClick={() => setTab("attributes")} className={tab === "attributes" ? "active-tab" : ""}>
-          Attribute Names
+          Construct and View
         </button>
         <button onClick={() => setTab("node")} className={tab === "node" ? "active-tab" : ""}>
-          Node Manager
+          Node Properties
+        </button>
+        <button onClick={() => setTab("relations")} className={tab === "relations" ? "active-tab" : ""}>
+          Relation Propeties
+        </button>
+        <button onClick={() => setTab("attributes")} className={tab === "attributes" ? "active-tab" : ""}>
+          Attribute Properties
         </button>
       </div>
 

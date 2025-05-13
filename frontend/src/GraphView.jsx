@@ -58,7 +58,7 @@ export default function GraphView({ relationRefreshKey }) {
     const formHeight = 100; // Height of the Build Knowledge form (adjust as needed)
     const width = window.innerWidth - sidebarWidth;
     const height = window.innerHeight - headerHeight - formHeight;
-    svg.attr('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
+    svg.attr('viewBox', `-100 -100 ${window.innerWidth} ${window.innerHeight}`)
       .attr('preserveAspectRatio', 'xMinYMin meet');
 
     // Arrow marker for links (adjusted for rectangles, larger and more visible)
