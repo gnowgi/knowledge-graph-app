@@ -9,6 +9,7 @@ export default function GraphView({ relationRefreshKey }) {
   const [nodes, setNodes] = useState([]);
   const [links, setLinks] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [parsedSummary, setParsedSummary] = useState(null);
   const [newTitle, setNewTitle] = useState("");
   const [relationTargetId, setRelationTargetId] = useState("");
   const [relationTypeId, setRelationTypeId] = useState("");
@@ -17,19 +18,13 @@ export default function GraphView({ relationRefreshKey }) {
   const [relationList, setRelationList] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const expandedNodes = useRef(new Set());
-  const [sidebarTab, setSidebarTab] = useState('nodes'); // 'nodes' or 'props'
+  const [sidebarTab, setSidebarTab] = useState('nodes');
   const [editNodeId, setEditNodeId] = useState(null);
   const [editNodeData, setEditNodeData] = useState({ label: '', summary: '' });
-  const [creatorTab, setCreatorTab] = useState('view'); // default to 'view'
-  const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'advanced'
+  const [creatorTab, setCreatorTab] = useState('view');
+  const [difficulty, setDifficulty] = useState('easy');
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: window.innerWidth, height: window.innerHeight });
 
-  // Add state for SVG viewBox configuration tool
-  const [viewBox, setViewBox] = useState({
-    x: 0,
-    y: 0,
-    width: window.innerWidth,
-    height: window.innerHeight
-  });
 
   useEffect(() => {
     // Removed initial fetch for /api/node/1/neighbors
@@ -55,6 +50,26 @@ export default function GraphView({ relationRefreshKey }) {
     drawGraph(nodes, links);
   }, [nodes, links]);
 
+  useEffect(() => {
+    if (!selectedNode?.summary) {
+      setParsedSummary(null);
+      return;
+    }
+    fetch("/api/nlp/parse-summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: selectedNode.summary })
+    })
+      .then(res => res.json())
+      .then(setParsedSummary)
+      .catch(err => {
+        console.error("NLP parsing failed:", err);
+        setParsedSummary(null);
+      });
+  }, [selectedNode]);
+
+
+    
   // Handler to update viewBox values
   const handleViewBoxChange = (field, value) => {
     setViewBox(prev => ({
@@ -1122,7 +1137,7 @@ export default function GraphView({ relationRefreshKey }) {
         }}
       >
         {/* Info card only in "view" tab */}
-        {creatorTab === 'view' && selectedNode && (
+        {creatorTab === 'view' && selectedNode && parsedSummary && (
           <div
             style={{
               marginLeft: 24,
@@ -1148,6 +1163,24 @@ export default function GraphView({ relationRefreshKey }) {
                 <p>{selectedNode.summary}</p>
               </>
             )}
+
+	    <h3>Parsed Summary</h3>
+          <div><strong>Suggested Relations:</strong></div>
+          {parsedSummary.relations.map((r, idx) => (
+            <div key={idx}>
+              <label>
+                <input type="checkbox" /> {r.subject} → {r.predicate} → {r.object}
+              </label>
+            </div>
+          ))}
+          <div style={{ marginTop: 8 }}><strong>Suggested Attributes:</strong></div>
+          {parsedSummary.attributes.map((a, idx) => (
+            <div key={idx}>
+              <label>
+                <input type="checkbox" /> {a.entity} → {a.attribute}
+              </label>
+            </div>
+          ))}  
           </div>
         )}
         {/* SVG ViewBox Tool just above SVG */}

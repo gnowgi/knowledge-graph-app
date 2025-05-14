@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 import sqlite3
 import openai
 import json
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
 
 load_dotenv()
 import config
@@ -601,6 +604,91 @@ def delete_relation_type(type_id):
     conn.commit()
     conn.close()
     return jsonify({"success": True})
+
+
+# NLP Support functions
+
+def parse_summary_text(text):
+    doc = nlp(text)
+    relations = []
+    attributes = []
+    debug_tokens = []
+
+    for sent in doc.sents:
+        for token in sent:
+            # Save all tokens for inspection
+            debug_tokens.append({
+                "text": token.text,
+                "lemma": token.lemma_,
+                "pos": token.pos_,
+                "tag": token.tag_,
+                "dep": token.dep_,
+                "head": token.head.text
+            })
+
+            # RELATIONS: subject-verb-object
+            if token.dep_ == "ROOT" and token.pos_ == "VERB":
+                subj = [w for w in token.lefts if w.dep_ in ("nsubj", "nsubjpass")]
+                obj = [w for w in token.rights if w.dep_ in ("dobj", "attr", "prep", "pobj", "xcomp", "acomp")]
+                for s in subj:
+                    for o in obj:
+                        relations.append({
+                            "subject": s.text,
+                            "predicate": token.lemma_,
+                            "object": o.text
+                        })
+
+            # RELATIONS: copula ("X is a Y")
+            if token.dep_ == "attr" and token.head.pos_ == "AUX":
+                subj = [w for w in token.head.lefts if w.dep_ == "nsubj"]
+                if subj:
+                    relations.append({
+                        "subject": subj[0].text,
+                        "predicate": token.head.lemma_,
+                        "object": token.text
+                    })
+
+            # RELATIONS: relative clauses ("who developed...")
+            if token.dep_ == "relcl" and token.head.pos_ in ("NOUN", "PROPN"):
+                subj = token.head.text
+                obj = [w for w in token.rights if w.dep_ in ("dobj", "pobj", "xcomp")]
+                for o in obj:
+                    relations.append({
+                        "subject": subj,
+                        "predicate": token.lemma_,
+                        "object": o.text
+                    })
+
+            # ATTRIBUTES: adjective modifiers or compound descriptors
+            if token.pos_ == "NOUN":
+                for child in token.children:
+                    if child.dep_ in ("amod", "compound"):
+                        attributes.append({
+                            "entity": token.text,
+                            "attribute": child.text
+                        })
+
+    return {
+        "common_nouns": list({t.text for t in doc if t.pos_ == "NOUN" and t.ent_type_ == ""}),
+        "proper_nouns": list({t.text for t in doc if t.pos_ == "PROPN"}),
+        "relations": relations,
+        "attributes": attributes,
+        "prepositions": [t.text for t in doc if t.pos_ == "ADP"],
+        "logical_connectives": [t.text for t in doc if t.pos_ == "CCONJ"],
+        "debug_tokens": debug_tokens  # for inspection
+    }
+
+
+@app.route("/api/nlp/parse-summary", methods=["POST"])
+def parse_summary():
+    data = request.get_json()
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "No summary text provided."}), 400
+
+    result = parse_summary_text(text)
+    return jsonify(result)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
