@@ -20,8 +20,16 @@ export default function GraphView({ relationRefreshKey }) {
   const [sidebarTab, setSidebarTab] = useState('nodes'); // 'nodes' or 'props'
   const [editNodeId, setEditNodeId] = useState(null);
   const [editNodeData, setEditNodeData] = useState({ label: '', summary: '' });
-  const [creatorTab, setCreatorTab] = useState('relation'); // 'relation' or 'property'
+  const [creatorTab, setCreatorTab] = useState('view'); // default to 'view'
   const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'advanced'
+
+  // Add state for SVG viewBox configuration tool
+  const [viewBox, setViewBox] = useState({
+    x: 0,
+    y: 0,
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
 
   useEffect(() => {
     // Removed initial fetch for /api/node/1/neighbors
@@ -47,6 +55,14 @@ export default function GraphView({ relationRefreshKey }) {
     drawGraph(nodes, links);
   }, [nodes, links]);
 
+  // Handler to update viewBox values
+  const handleViewBoxChange = (field, value) => {
+    setViewBox(prev => ({
+      ...prev,
+      [field]: Number(value)
+    }));
+  };
+
   const drawGraph = (nodes, links) => {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -56,8 +72,10 @@ export default function GraphView({ relationRefreshKey }) {
     const formHeight = 100; // Height of the Build Knowledge form (adjust as needed)
     const width = window.innerWidth - sidebarWidth;
     const height = window.innerHeight - headerHeight - formHeight;
-    svg.attr('viewBox', `-400 -400 ${window.innerWidth} ${window.innerHeight}`)
-      .attr('preserveAspectRatio', 'xMinYMin meet');
+    svg.attr(
+      'viewBox',
+      `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
+    ).attr('preserveAspectRatio', 'xMinYMin meet');
 
     // Arrow marker for links (adjusted for rectangles, larger and more visible)
     svg.append('defs').append('marker')
@@ -665,6 +683,89 @@ export default function GraphView({ relationRefreshKey }) {
     // Optionally refresh node properties or graph
   };
 
+  // Add a small tool UI for adjusting SVG viewBox (now placed just above SVG)
+  const renderViewBoxTool = () => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      margin: '0 0 12px 24px',
+      fontSize: 13,
+      background: '#f7fbff',
+      border: '1px solid #cbe6ff',
+      borderRadius: 6,
+      padding: '6px 12px',
+      width: 'fit-content'
+    }}>
+      <span style={{ fontWeight: 500, marginRight: 4 }}>SVG ViewBox:</span>
+      <label>
+        x:
+        <input
+          type="number"
+          value={viewBox.x}
+          onChange={e => handleViewBoxChange('x', e.target.value)}
+          style={{ width: 60, margin: '0 4px' }}
+        />
+      </label>
+      <label>
+        y:
+        <input
+          type="number"
+          value={viewBox.y}
+          onChange={e => handleViewBoxChange('y', e.target.value)}
+          style={{ width: 60, margin: '0 4px' }}
+        />
+      </label>
+      <label>
+        width:
+        <input
+          type="number"
+          value={viewBox.width}
+          onChange={e => handleViewBoxChange('width', e.target.value)}
+          style={{ width: 80, margin: '0 4px' }}
+        />
+      </label>
+      <label>
+        height:
+        <input
+          type="number"
+          value={viewBox.height}
+          onChange={e => handleViewBoxChange('height', e.target.value)}
+          style={{ width: 80, margin: '0 4px' }}
+        />
+      </label>
+      <button
+        onClick={() => setViewBox({
+          x: 0,
+          y: 0,
+          width: window.innerWidth,
+          height: window.innerHeight
+        })}
+        style={{
+          marginLeft: 8,
+          padding: '2px 10px',
+          borderRadius: 4,
+          border: '1px solid #b5d6f7',
+          background: '#e3f6fc',
+          cursor: 'pointer'
+        }}
+      >
+        Reset
+      </button>
+    </div>
+  );
+
+  // Dynamically update SVG viewBox when viewBox state changes
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (svg) {
+      svg.setAttribute(
+        'viewBox',
+        `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
+      );
+    }
+  }, [viewBox]);
+
   return (
     <div style={{ width: '100%', height: 'calc(100% - 45px)', display: 'flex', flexDirection: 'column' }}>
       {/* Difficulty selector */}
@@ -680,11 +781,11 @@ export default function GraphView({ relationRefreshKey }) {
           <option value="advanced">Advanced (Quantifiers + Modality)</option>
         </select>
       </div>
-      {/* Unified Tabs Row (Creator + All Nodes/Props) */}
+      {/* Unified Tabs Row (View + Creator + All Nodes/Props) */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        margin: '16px 0 0 24px', // <-- left offset is 24px
+        margin: '16px 0 0 24px',
       }}>
         <div style={{
           display: 'flex',
@@ -694,6 +795,21 @@ export default function GraphView({ relationRefreshKey }) {
           overflow: 'hidden',
           border: '1px solid #e3f6fc'
         }}>
+          <button
+            onClick={() => setCreatorTab('view')}
+            style={{
+              padding: '10px 24px',
+              background: creatorTab === 'view' ? '#e3f6fc' : '#fff',
+              border: 'none',
+              borderBottom: creatorTab === 'view' ? '2px solid #1976d2' : 'none',
+              fontWeight: 600,
+              color: creatorTab === 'view' ? '#1976d2' : '#333',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            View
+          </button>
           <button
             onClick={() => setCreatorTab('relation')}
             style={{
@@ -1002,94 +1118,59 @@ export default function GraphView({ relationRefreshKey }) {
           flex: 1,
           display: 'flex',
           minHeight: 0,
-          flexDirection: 'row',
-          flexWrap: 'wrap',
+          flexDirection: 'column', // stack vertically always
         }}
       >
-        {/* Node info card: show only if a node is selected */}
-        {selectedNode && (
+        {/* Info card only in "view" tab */}
+        {creatorTab === 'view' && selectedNode && (
           <div
             style={{
-              display: 'flex',
-              flexDirection: 'row',
-              gap: 16,
               marginLeft: 24,
-              marginBottom: 0,
-              marginTop: 0,
-              marginRight: 0,
-              flexWrap: 'wrap',
-              width: '100%',
-            }}
-          >
-            {/* Node Info Card */}
-            <div
-              style={{
-                minWidth: 260,
-                maxWidth: 340,
-                background: '#fff',
-                border: '1px solid #e3f6fc',
-                borderRadius: 8,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                padding: 16,
-                marginBottom: 0,
-                marginTop: 0,
-                flex: '1 1 260px',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
-              <NodeProperties nodeId={selectedNode.id} />
-              {selectedNode.summary && (
-                <>
-                  <strong>Summary:</strong>
-                  <p>{selectedNode.summary}</p>
-                </>
-              )}
-            </div>
-            {/* SVG Graph Card */}
-            <div
-              style={{
-                flex: 1,
-                marginTop: 1,
-                marginRight: 24,
-                background: '#f7fbff',
-                border: '1px solid #cbe6ff',
-                borderRadius: 8,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                padding: 16,
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0,
-                // Responsive: stack below on mobile
-                minWidth: 260,
-                width: '100%',
-                maxWidth: '100%',
-              }}
-            >
-              <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1 }} />
-            </div>
-          </div>
-        )}
-        {!selectedNode && (
-          <div
-            style={{
-              flex: 1,
-              marginTop: 1,
               marginRight: 24,
-              background: '#f7fbff',
-              border: '1px solid #cbe6ff',
+              marginTop: 0,
+              marginBottom: 12,
+              minWidth: 260,
+              maxWidth: 600,
+              background: '#fff',
+              border: '1px solid #e3f6fc',
               borderRadius: 8,
               boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
               padding: 16,
               display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0,
+              flexDirection: 'column'
             }}
           >
-            <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1 }} />
+            <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
+            <NodeProperties nodeId={selectedNode.id} />
+            {selectedNode.summary && (
+              <>
+                <strong>Summary:</strong>
+                <p>{selectedNode.summary}</p>
+              </>
+            )}
           </div>
         )}
+        {/* SVG ViewBox Tool just above SVG */}
+        {renderViewBoxTool()}
+        {/* SVG graph card always below info card and viewbox tool */}
+        <div
+          style={{
+            flex: 1,
+            marginTop: 1,
+            marginRight: 24,
+            marginLeft: 24,
+            background: '#f7fbff',
+            border: '1px solid #cbe6ff',
+            borderRadius: 8,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+            padding: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
+        >
+          <svg ref={svgRef} width="100%" height="100%" style={{ flex: 1 }} />
+        </div>
       </div>
     </div>
   );
