@@ -23,7 +23,7 @@ export default function GraphView({ relationRefreshKey }) {
   const [editNodeData, setEditNodeData] = useState({ label: '', summary: '' });
   const [creatorTab, setCreatorTab] = useState('view');
   const [difficulty, setDifficulty] = useState('easy');
-  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: window.innerWidth, height: window.innerHeight });
+  const [viewBox, setViewBox] = useState({ x: -70, y: -100, width: window.innerWidth, height: window.innerHeight });
 
 
   useEffect(() => {
@@ -1137,52 +1137,77 @@ export default function GraphView({ relationRefreshKey }) {
         }}
       >
         {/* Info card only in "view" tab */}
-        {creatorTab === 'view' && selectedNode && parsedSummary && (
-          <div
-            style={{
-              marginLeft: 24,
-              marginRight: 24,
-              marginTop: 0,
-              marginBottom: 12,
-              minWidth: 260,
-              maxWidth: 600,
-              background: '#fff',
-              border: '1px solid #e3f6fc',
-              borderRadius: 8,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-              padding: 16,
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
-            <NodeProperties nodeId={selectedNode.id} />
-            {selectedNode.summary && (
-              <>
-                <strong>Summary:</strong>
-                <p>{selectedNode.summary}</p>
-              </>
-            )}
 
-	    <h3>Parsed Summary</h3>
-          <div><strong>Suggested Relations:</strong></div>
-          {parsedSummary.relations.map((r, idx) => (
-            <div key={idx}>
-              <label>
-                <input type="checkbox" /> {r.subject} → {r.predicate} → {r.object}
-              </label>
-            </div>
-          ))}
-          <div style={{ marginTop: 8 }}><strong>Suggested Attributes:</strong></div>
-          {parsedSummary.attributes.map((a, idx) => (
-            <div key={idx}>
-              <label>
-                <input type="checkbox" /> {a.entity} → {a.attribute}
-              </label>
-            </div>
-          ))}  
-          </div>
-        )}
+{creatorTab === 'view' && selectedNode && parsedSummary && (
+  <div style={{ display: 'flex', flexDirection: 'row', margin: '0 24px 12px 24px', gap: '12px' }}>
+    
+    {/* Left: Node Info */}
+    <div style={{
+      flex: 1,
+      minWidth: 260,
+      background: '#fff',
+      border: '1px solid #e3f6fc',
+      borderRadius: 8,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      padding: 16
+    }}>
+      <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
+      <NodeProperties nodeId={selectedNode.id} />
+      {parsedSummary.highlighted_summary && (
+        <div
+          style={{ marginTop: 8 }}
+          dangerouslySetInnerHTML={{ __html: parsedSummary.highlighted_summary }}
+        />
+      )}
+
+	
+    </div>
+
+    {/* Right: NLP Suggestions */}
+    <div style={{
+      flex: 1,
+      minWidth: 260,
+      background: '#fff',
+      border: '1px solid #cbe6ff',
+      borderRadius: 8,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      padding: 16
+    }}>
+      <strong>Suggested Relations/Properties</strong>
+
+      <div style={{ marginTop: 12 }}><strong>Suggested Relations:</strong></div>
+      {parsedSummary.relations.map((r, idx) => (
+        <div key={idx}>
+          <label>
+            <input type="checkbox" /> {r.subject} → {r.predicate} → {r.object}
+          </label>
+        </div>
+      ))}
+
+      <div style={{ marginTop: 8 }}><strong>Suggested Attributes:</strong></div>
+      {parsedSummary.attributes.map((a, idx) => (
+        <div key={idx}>
+          <label>
+            <input type="checkbox" /> {a.entity} → {a.attribute}
+          </label>
+        </div>
+      ))}
+
+      <details style={{ marginTop: 12 }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Debug: Parsed Tokens</summary>
+        <pre style={{ fontSize: 12, background: '#f0f0f0', padding: 8 }}>
+          {JSON.stringify(parsedSummary.debug_tokens, null, 2)}
+        </pre>
+      </details>
+    </div>
+  </div>
+)}
+
+
+
+
+
+
         {/* SVG ViewBox Tool just above SVG */}
         {renderViewBoxTool()}
         {/* SVG graph card always below info card and viewbox tool */}

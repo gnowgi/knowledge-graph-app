@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, g
 from dotenv import load_dotenv
+from markupsafe import escape
 import sqlite3
 import openai
 import json
@@ -675,8 +676,60 @@ def parse_summary_text(text):
         "attributes": attributes,
         "prepositions": [t.text for t in doc if t.pos_ == "ADP"],
         "logical_connectives": [t.text for t in doc if t.pos_ == "CCONJ"],
-        "debug_tokens": debug_tokens  # for inspection
+        "debug_tokens": debug_tokens,  # for inspection
+        "highlighted_summary": highlight_text(doc, relations, attributes)
     }
+
+
+from markupsafe import escape
+
+def highlight_text(doc, relations, attributes):
+    relation_verbs = {r["predicate"] for r in relations}
+    attribute_words = {a["attribute"].lower() for a in attributes}
+
+    noun_chunks = list(doc.noun_chunks)
+    chunk_starts = {chunk.start for chunk in noun_chunks}
+    highlighted = []
+    i = 0
+
+    while i < len(doc):
+        token = doc[i]
+
+        # If token starts a noun chunk
+        if i in chunk_starts:
+            chunk = next(c for c in noun_chunks if c.start == i)
+            span_tokens = []
+            for tok in chunk:
+                if tok.pos_ == "DET":
+                    span_tokens.append(escape(tok.text) + tok.whitespace_)
+                else:
+                    span_tokens.append(f"<strong>{escape(tok.text)}</strong>" + tok.whitespace_)
+            highlighted.append("".join(span_tokens))
+            i = chunk.end
+            continue
+
+        # Otherwise apply additional styling
+        word = escape(token.text)
+        styles = []
+
+        if token.pos_ == "PROPN":
+            styles.append("font-weight:bold; color:blue")
+        if token.lemma_ in relation_verbs and token.pos_ == "VERB":
+            styles.append("font-style:italic")
+        if token.text.lower() in attribute_words:
+            styles.append("color:gray")
+        if token.pos_ == "ADP":
+            styles.append("color:blue")
+
+        if styles:
+            word = f"<span style=\"{' '.join(styles)}\">{word}</span>"
+
+        highlighted.append(word + token.whitespace_)
+        i += 1
+
+    return "".join(highlighted)
+
+
 
 
 @app.route("/api/nlp/parse-summary", methods=["POST"])
