@@ -23,7 +23,8 @@ export default function GraphView({ relationRefreshKey }) {
   const [editNodeData, setEditNodeData] = useState({ label: '', summary: '' });
   const [creatorTab, setCreatorTab] = useState('view');
   const [difficulty, setDifficulty] = useState('easy');
-  const [viewBox, setViewBox] = useState({ x: -70, y: -100, width: window.innerWidth, height: window.innerHeight });
+  const [viewBox, setViewBox] = useState({ x: -70, y: -100, width: window.innerWidth, height: 600 });
+  // const [viewBox, setViewBox] = useState({ x: -70, y: -100, width: window.innerWidth, height: window.innerHeight });
 
 
   useEffect(() => {
@@ -68,6 +69,10 @@ export default function GraphView({ relationRefreshKey }) {
       });
   }, [selectedNode]);
 
+    useEffect(() => {
+	console.log("Selected Node:", selectedNode);
+    }, [selectedNode]);
+
 
     
   // Handler to update viewBox values
@@ -77,6 +82,9 @@ export default function GraphView({ relationRefreshKey }) {
       [field]: Number(value)
     }));
   };
+
+  // Helper to display node as "qualifier label" if qualifier exists
+  const getDisplayLabel = (node) => node?.qualifier ? `${node.qualifier} ${node.label}` : node?.label;
 
   const drawGraph = (nodes, links) => {
     const svg = d3.select(svgRef.current);
@@ -159,15 +167,22 @@ export default function GraphView({ relationRefreshKey }) {
         .on('start', dragstarted)
         .on('drag', dragged)
         .on('end', dragended))
-      .on('click', (event, d) => {
-        setSelectedNode(d);
-        expandNode(d.id);
+      .on("click", async (event, d) => {
+        try {
+          const res = await fetch(`/api/node/${d.id}`);
+          const node = await res.json();
+          setSelectedNode(node);
+        } catch (err) {
+          console.error("Failed to load node info:", err);
+        }
       })
       .on('dblclick', (event, d) => {
         // Unpin node on double-click
         d.fx = null;
         d.fy = null;
         d3.select(event.currentTarget).select('.pin-icon').remove();
+        // Update React state to trigger re-render and remove pin icon
+        setNodes(nodes => nodes.map(n => n.id === d.id ? { ...n, fx: null, fy: null } : n));
       });
 
     // For each node, append a text element to measure its width
@@ -178,7 +193,7 @@ export default function GraphView({ relationRefreshKey }) {
       .attr('x', 0)
       .attr('dominant-baseline', 'middle')
       .attr('text-anchor', 'middle')
-      .text(d => d.label)
+      .text(d => getDisplayLabel(d)) // <-- use display label
       .each(function(d) {
         d.textWidth = this.getBBox().width;
       });
@@ -228,9 +243,6 @@ export default function GraphView({ relationRefreshKey }) {
           const my = (sy + ty) / 2;
           const dx = tx - sx, dy = ty - sy;
           const len = Math.sqrt(dx * dx + dy * dy);
-          const px = -dy / len, py = dx / len;
-          const arcHeight = 0.4 * len;
-          labelNode.x = mx + px * arcHeight;
           labelNode.y = my + py * arcHeight;
         } else {
           // For direct: use straight midpoint
@@ -970,7 +982,7 @@ export default function GraphView({ relationRefreshKey }) {
                   maxHeight: 150 // fits within parent card, adjust as needed
                 }}>
                   {[...allNodes].sort((a, b) => b.id - a.id)
-                    .filter(n => n.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(n => getDisplayLabel(n).toLowerCase().includes(searchQuery.toLowerCase()))
                     .map(n => (
                       <div
                         key={n.id}
@@ -991,7 +1003,9 @@ export default function GraphView({ relationRefreshKey }) {
                         onClick={() => showNodeAndNeighbors(n.id)}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={n.is_instance ? { textDecoration: 'underline', textDecorationThickness: '2px' } : {}}>{n.label}</span>
+                          <span style={n.is_instance ? { textDecoration: 'underline', textDecorationThickness: '2px' } : {}}>
+                            {getDisplayLabel(n)}
+                          </span>
                           <div className="actions">
                             <button
                               onClick={e => {
@@ -1058,7 +1072,7 @@ export default function GraphView({ relationRefreshKey }) {
                     ))}
                   {/* If no matches, show a message */}
                   {
-                    [...allNodes].filter(n => n.label.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 &&
+                    [...allNodes].filter(n => getDisplayLabel(n).toLowerCase().includes(searchQuery.toLowerCase())).length === 0 &&
                     <div style={{ color: '#888', padding: 8 }}>No nodes found.</div>
                   }
                 </div>
@@ -1140,7 +1154,6 @@ export default function GraphView({ relationRefreshKey }) {
 
 {creatorTab === 'view' && selectedNode && parsedSummary && (
   <div style={{ display: 'flex', flexDirection: 'row', margin: '0 24px 12px 24px', gap: '12px' }}>
-    
     {/* Left: Node Info */}
     <div style={{
       flex: 1,
@@ -1151,18 +1164,25 @@ export default function GraphView({ relationRefreshKey }) {
       boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       padding: 16
     }}>
-      <h3 style={{ margin: 0 }}>{selectedNode.label}</h3>
+      <h3 style={{ margin: 0 }}>
+        {getDisplayLabel(selectedNode)}
+      </h3>
       <NodeProperties nodeId={selectedNode.id} />
-      {parsedSummary.highlighted_summary && (
+      {/* Show parsedSummary.highlighted_summary if available, else fallback to summary */}
+      {parsedSummary.highlighted_summary ? (
         <div
           style={{ marginTop: 8 }}
           dangerouslySetInnerHTML={{ __html: parsedSummary.highlighted_summary }}
         />
+      ) : (
+        selectedNode.summary && (
+          <div style={{ marginTop: 8 }}>
+            <strong>Summary:</strong>
+            <p>{selectedNode.summary}</p>
+          </div>
+        )
       )}
-
-	
     </div>
-
     {/* Right: NLP Suggestions */}
     <div style={{
       flex: 1,
@@ -1174,7 +1194,6 @@ export default function GraphView({ relationRefreshKey }) {
       padding: 16
     }}>
       <strong>Suggested Relations/Properties</strong>
-
       <div style={{ marginTop: 12 }}><strong>Suggested Relations:</strong></div>
       {parsedSummary.relations.map((r, idx) => (
         <div key={idx}>
@@ -1183,7 +1202,6 @@ export default function GraphView({ relationRefreshKey }) {
           </label>
         </div>
       ))}
-
       <div style={{ marginTop: 8 }}><strong>Suggested Attributes:</strong></div>
       {parsedSummary.attributes.map((a, idx) => (
         <div key={idx}>
@@ -1192,7 +1210,6 @@ export default function GraphView({ relationRefreshKey }) {
           </label>
         </div>
       ))}
-
       <details style={{ marginTop: 12 }}>
         <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Debug: Parsed Tokens</summary>
         <pre style={{ fontSize: 12, background: '#f0f0f0', padding: 8 }}>
@@ -1202,7 +1219,6 @@ export default function GraphView({ relationRefreshKey }) {
     </div>
   </div>
 )}
-
 
 
 

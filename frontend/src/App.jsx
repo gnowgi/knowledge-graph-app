@@ -5,6 +5,7 @@ import RelationCreator from './RelationCreator';
 import AttributeManager from './AttributeManager';
 import PropertyCreator from './PropertyCreator';
 import NodeManager from './NodeManager'; // 
+import KnowledgeBuilder from './KnowledgeBuilder';
 
 export default function App() {
   const [tab, setTab] = useState("map");
@@ -45,16 +46,16 @@ export default function App() {
           Attribute Properties
         </button>
       </div>
+	{tab === "map" ? (
+	    <KnowledgeBuilder selectedNodeId={selectedNodeId} relationRefreshKey={relationRefreshKey} />
+	) : tab === "relations" ? (
+	    <RelationTypeManager />
+	) : tab === "attributes" ? (
+	    <AttributeManager />
+	) : (
+	    <NodeManager nodeId={selectedNodeId} />
+	)}
 
-      {tab === "map" ? (
-        <GraphView relationRefreshKey={relationRefreshKey} />
-      ) : tab === "relations" ? (
-        <RelationTypeManager />
-      ) : tab === "attributes" ? (
-        <AttributeManager />
-      ) : (
-        <NodeManager nodeId={selectedNodeId} /> // 🆕 Show NodeManager tab
-      )}
     </div>
   );
 }

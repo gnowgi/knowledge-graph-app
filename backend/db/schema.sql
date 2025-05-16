@@ -61,6 +61,11 @@ CREATE TABLE IF NOT EXISTS possible_node_attributes (
     UNIQUE(node_id, attribute_id) -- prevents duplicates
 );
 
+-- Add the qualifier field to nodes table
+ALTER TABLE nodes ADD COLUMN qualifier TEXT;
+
+-- Create a uniqueness constraint over (title, qualifier)
+CREATE UNIQUE INDEX idx_nodes_title_qualifier ON nodes(title, qualifier);
 
 
 -- Insert commonly used relations

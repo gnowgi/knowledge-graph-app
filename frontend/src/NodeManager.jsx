@@ -152,13 +152,30 @@ const NodeManager = () => {
                   <button type="button" onClick={() => setEditNodeId(null)}>Cancel</button>
                 </form>
               ) : (
-                <span style={{ fontWeight: 600, fontSize: '1.1em', color: '#1976d2' }}>
-                  {node.label}
+                <div>
+                  <div
+                    // onClick suspended for now
+                    style={{
+                      cursor: 'pointer',
+                      fontSize: '1.2em',
+                      animation: 'ticktock 1s infinite alternate',
+                      fontWeight: 600,
+                      color: '#1976d2',
+                      display: 'inline-flex',
+                      gap: 6
+                    }}
+                    title="View in Graph"
+                  >
+                    {node.qualifier && (
+                      <span style={{ color: 'gray', marginRight: 4 }}>{node.qualifier}</span>
+                    )}
+                    <span>{node.label}</span>
+                  </div>
                   <button
                     style={{ marginLeft: 8, fontSize: '0.9em' }}
                     onClick={() => handleEditLabel(node)}
                   >Edit</button>
-                </span>
+                </div>
               )}
             </div>
             {/* Node metadata */}

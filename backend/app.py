@@ -1,10 +1,11 @@
 from flask import Flask, jsonify, request, g
 from dotenv import load_dotenv
-from markupsafe import escape
 import sqlite3
 import openai
 import json
 import spacy
+
+from nlp_utils import parse_node_label
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -609,6 +610,7 @@ def delete_relation_type(type_id):
 
 # NLP Support functions
 
+
 def parse_summary_text(text):
     doc = nlp(text)
     relations = []
@@ -741,6 +743,14 @@ def parse_summary():
 
     result = parse_summary_text(text)
     return jsonify(result)
+
+@app.route('/api/nlp/parse-node-label', methods=['POST'])
+def api_parse_node_label():
+    data = request.get_json()
+    text = data.get('text', '')
+    result = parse_node_label(text)
+    return jsonify(result)
+
 
 
 if __name__ == "__main__":

@@ -1,6 +1,16 @@
 // RelationCreator.jsx: UI for subject–predicate–object relation creation
 import React, { useEffect, useState } from 'react';
 
+// TEMPORARY helper for parsing
+async function parseNodeLabel(text) {
+  const res = await fetch('/api/nlp/parse-node-label', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text })
+  });
+  return await res.json();
+}
+
 export default function RelationCreator({ onRelationCreated, difficulty }) {
   const MODALITIES = [
     '', 'necessarily', 'possibly', 'allegedly', 'experimentally', 'historically', 'reportedly', 'theoretically', 'empirically'
@@ -17,6 +27,32 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
   const [subjectQuantifier, setSubjectQuantifier] = useState('');
   const [objectQuantifier, setObjectQuantifier] = useState('');
 
+  const [confirmingNode, setConfirmingNode] = useState(null); // { role, original, parsed }
+  const [parsedSource, setParsedSource] = useState(null);
+  const [parsedTarget, setParsedTarget] = useState(null);
+
+  // Dropdown visibility states
+  const [sourceDropdown, setSourceDropdown] = useState(false);
+  const [targetDropdown, setTargetDropdown] = useState(false);
+
+  // Filtered node lists for autocomplete
+  const filteredSourceNodes = allNodes.filter(n =>
+    sourceInput.trim() &&
+    n.label.toLowerCase().includes(sourceInput.trim().toLowerCase())
+  );
+  const filteredTargetNodes = allNodes.filter(n =>
+    targetInput.trim() &&
+    n.label.toLowerCase().includes(targetInput.trim().toLowerCase())
+  );
+
+  // Track selected node IDs if chosen from dropdown
+  const [selectedSourceNode, setSelectedSourceNode] = useState(null);
+  const [selectedTargetNode, setSelectedTargetNode] = useState(null);
+
+  // Reset selected node if input changes
+  useEffect(() => { setSelectedSourceNode(null); }, [sourceInput]);
+  useEffect(() => { setSelectedTargetNode(null); }, [targetInput]);
+
   useEffect(() => {
     fetch('/api/nodes').then(res => res.json()).then(setAllNodes);
     fetch('/api/relation-types').then(res => res.json()).then(setRelationTypes);
@@ -26,18 +62,18 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
     return allNodes.find(n => n.label.toLowerCase() === label.trim().toLowerCase());
   };
 
-  const createNodeIfNotExists = async (label) => {
-    let node = findNodeByLabel(label);
+  const createNodeIfNotExists = async (label, qualifier) => {
+    const node = allNodes.find(n => n.label.toLowerCase() === label.trim().toLowerCase() && (n.qualifier || '') === (qualifier || ''));
     if (node) return node;
     const res = await fetch('/api/node/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: label })
+      body: JSON.stringify({ title: label, qualifier })
     });
     if (res.ok) {
-      node = await res.json();
-      setAllNodes(nodes => [...nodes, node]);
-      return node;
+      const newNode = await res.json();
+      setAllNodes(nodes => [...nodes, newNode]);
+      return newNode;
     } else {
       const msg = await res.json();
       alert(msg.error || 'Node creation failed.');
@@ -55,10 +91,46 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
       alert('Source and target must be different nodes.');
       return;
     }
+
+    // If user selected from dropdown, use that node directly
+    if (selectedSourceNode && selectedTargetNode) {
+      await finalizeCreate(
+        { title: selectedSourceNode.label, qualifier: selectedSourceNode.qualifier, id: selectedSourceNode.id },
+        { title: selectedTargetNode.label, qualifier: selectedTargetNode.qualifier, id: selectedTargetNode.id }
+      );
+      return;
+    }
+
+    if (parsedSource && parsedTarget) {
+      await finalizeCreate(parsedSource, parsedTarget);
+      return;
+    }
+
+    const src = parsedSource || await parseNodeLabel(sourceInput);
+    const tgt = parsedTarget || await parseNodeLabel(targetInput);
+
+    if (!parsedSource && src.parsed) {
+      setConfirmingNode({ role: 'subject', original: sourceInput, parsed: src });
+      return;
+    }
+    if (!parsedTarget && tgt.parsed) {
+      setConfirmingNode({ role: 'object', original: targetInput, parsed: tgt });
+      return;
+    }
+
+    await finalizeCreate(src, tgt);
+  };
+
+  const finalizeCreate = async (src, tgt) => {
     setLoading(true);
     try {
-      const sourceNode = await createNodeIfNotExists(sourceInput);
-      const targetNode = await createNodeIfNotExists(targetInput);
+      // If node was selected from dropdown, use its id directly
+      const sourceNode = src.id
+        ? src
+        : await createNodeIfNotExists(src.title, src.qualifier);
+      const targetNode = tgt.id
+        ? tgt
+        : await createNodeIfNotExists(tgt.title, tgt.qualifier);
       const res = await fetch('/api/relation/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,6 +151,8 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
         setModality('');
         setSubjectQuantifier('');
         setObjectQuantifier('');
+        setParsedSource(null);
+        setParsedTarget(null);
         if (onRelationCreated) onRelationCreated();
       } else {
         alert('Failed to create relation.');
@@ -88,109 +162,177 @@ export default function RelationCreator({ onRelationCreated, difficulty }) {
     }
   };
 
-  // Responsive grid style (always row on desktop, column on mobile)
-  const gridStyle = {
-    display: 'grid',
-    gap: 16,
-    width: '100%',
-    marginBottom: 12,
-    gridTemplateColumns: '1fr', // default: column
-  };
-
-  // Add a media query for desktop
-  const gridMediaStyle = `
-    @media (min-width: 600px) {
-      .relation-card-grid {
-        grid-template-columns: repeat(3, 1fr) !important;
-      }
+  const handleConfirmParsed = () => {
+    if (confirmingNode.role === 'subject') {
+      setParsedSource(confirmingNode.parsed);
+    } else {
+      setParsedTarget(confirmingNode.parsed);
     }
-  `;
-
-  const cardStyle = {
-    background: '#f8fafd',
-    border: '1px solid #cbe6ff',
-    borderRadius: 8,
-    padding: 18,
-    minWidth: 0,
-    boxSizing: 'border-box',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start'
+    setConfirmingNode(null);
   };
+
+  const handleRejectParsed = () => {
+    const fallback = { title: confirmingNode.original, qualifier: null, parsed: false };
+    if (confirmingNode.role === 'subject') {
+      setParsedSource(fallback);
+    } else {
+      setParsedTarget(fallback);
+    }
+    setConfirmingNode(null);
+  };
+
+  useEffect(() => {
+    if (parsedSource && parsedTarget) {
+      finalizeCreate(parsedSource, parsedTarget);
+    }
+  }, [parsedSource, parsedTarget]);
 
   return (
     <>
-      <style>{gridMediaStyle}</style>
+      {confirmingNode && (
+        <div style={{ padding: 12, border: '1px solid #cbe6ff', borderRadius: 6, background: '#f0f8ff', marginBottom: 12 }}>
+          <strong>Confirm interpretation for {confirmingNode.role}:</strong>
+          <div style={{ marginTop: 4 }}>
+            <span>“<em>{confirmingNode.original}</em>” → <strong>{confirmingNode.parsed.qualifier}</strong> {confirmingNode.parsed.title}</span>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <button onClick={handleConfirmParsed} style={{ marginRight: 8 }}>✔ Confirm</button>
+            <button onClick={handleRejectParsed}>✖ Use original</button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleCreate} style={{ width: '100%' }}>
-        <div className="relation-card-grid" style={gridStyle}>
-          {/* Subject Card */}
-          <div style={cardStyle}>
-            <label style={{ fontWeight: 500, marginBottom: 6 }}>Subject</label>
-            {difficulty === 'advanced' && (
-              <div style={{ marginBottom: 8, width: '100%' }}>
-                <label style={{ fontWeight: 500, fontSize: 13 }}>Modality</label>
-                <select value={modality} onChange={e => setModality(e.target.value)} style={{ width: '100%' }}>
-                  {MODALITIES.map(m => <option key={m} value={m}>{m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Modality'}</option>)}
-                </select>
-              </div>
-            )}
+        <div className="relation-card-grid" style={{
+          display: 'grid',
+          gap: 16,
+          width: '100%',
+          marginBottom: 12,
+          gridTemplateColumns: '1fr',
+        }}>
+          <div style={{ background: '#f8fafd', border: '1px solid #cbe6ff', borderRadius: 8, padding: 18, position: 'relative' }}>
+            <label>Subject</label>
             {(difficulty === 'medium' || difficulty === 'advanced') && (
-              <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)} style={{ marginBottom: 8, width: '100%' }}>
-                {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+              <select value={subjectQuantifier} onChange={e => setSubjectQuantifier(e.target.value)} style={{ width: '100%' }}>
+                {QUANTIFIERS.map(q => <option key={q} value={q}>{q || 'Quantifier'}</option>)}
               </select>
             )}
             <input
-              type="text"
-              placeholder="Choose a subject"
               value={sourceInput}
-              onChange={e => setSourceInput(e.target.value)}
-              list="source-suggestions"
-              style={{ minWidth: 140, width: '100%' }}
+              onChange={e => {
+                setSourceInput(e.target.value);
+                setSourceDropdown(true);
+              }}
+              placeholder="Enter subject"
+              style={{ width: '100%' }}
+              onFocus={() => setSourceDropdown(true)}
+              autoComplete="off"
             />
-            <datalist id="source-suggestions">
-              {allNodes.map(n => (
-                <option key={n.id} value={n.label} />
-              ))}
-            </datalist>
+            {sourceDropdown && filteredSourceNodes.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 60,
+                  left: 0,
+                  right: 0,
+                  background: '#fff',
+                  border: '1px solid #cbe6ff',
+                  borderRadius: 6,
+                  zIndex: 10,
+                  maxHeight: 120,
+                  overflowY: 'auto',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}
+              >
+                {filteredSourceNodes.map(n => (
+                  <div
+                    key={n.id}
+                    style={{
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f0f8ff'
+                    }}
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      setSourceInput(n.label);
+                      setSelectedSourceNode(n);
+                      setSourceDropdown(false);
+                    }}
+                  >
+                    {n.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          {/* Relation Card */}
-          <div style={cardStyle}>
-            <label style={{ fontWeight: 500, marginBottom: 6 }}>Relation</label>
-            <select value={relationTypeId} onChange={e => setRelationTypeId(e.target.value)} style={{ minWidth: 140, width: '100%' }}>
+
+          <div style={{ background: '#f8fafd', border: '1px solid #cbe6ff', borderRadius: 8, padding: 18 }}>
+            <label>Relation</label>
+            <select value={relationTypeId} onChange={e => setRelationTypeId(e.target.value)} style={{ width: '100%' }}>
               <option value=''>Choose relation name</option>
               {relationTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.name}</option>)}
             </select>
           </div>
-          {/* Object Card */}
-          <div style={cardStyle}>
-            <label style={{ fontWeight: 500, marginBottom: 6 }}>Object</label>
+
+          <div style={{ background: '#f8fafd', border: '1px solid #cbe6ff', borderRadius: 8, padding: 18, position: 'relative' }}>
+            <label>Object</label>
             {(difficulty === 'medium' || difficulty === 'advanced') && (
-              <select value={objectQuantifier} onChange={e => setObjectQuantifier(e.target.value)} style={{ marginBottom: 8, width: '100%' }}>
-                {QUANTIFIERS.map(q => <option key={q} value={q}>{q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Quantifier'}</option>)}
+              <select value={objectQuantifier} onChange={e => setObjectQuantifier(e.target.value)} style={{ width: '100%' }}>
+                {QUANTIFIERS.map(q => <option key={q} value={q}>{q || 'Quantifier'}</option>)}
               </select>
             )}
             <input
-              type="text"
-              placeholder="Choose an object"
               value={targetInput}
-              onChange={e => setTargetInput(e.target.value)}
-              list="target-suggestions"
-              style={{ minWidth: 140, width: '100%' }}
+              onChange={e => {
+                setTargetInput(e.target.value);
+                setTargetDropdown(true);
+              }}
+              placeholder="Enter object"
+              style={{ width: '100%' }}
+              onFocus={() => setTargetDropdown(true)}
+              autoComplete="off"
             />
-            <datalist id="target-suggestions">
-              {allNodes.map(n => (
-                <option key={n.id} value={n.label} />
-              ))}
-            </datalist>
-            <button
-              type='submit'
-              disabled={loading}
-              style={{ marginTop: 16, height: 40, alignSelf: 'flex-end', minWidth: 120 }}
-            >
-              {loading ? 'Creating...' : 'Add Relation'}
-            </button>
+            {targetDropdown && filteredTargetNodes.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 60,
+                  left: 0,
+                  right: 0,
+                  background: '#fff',
+                  border: '1px solid #cbe6ff',
+                  borderRadius: 6,
+                  zIndex: 10,
+                  maxHeight: 120,
+                  overflowY: 'auto',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}
+              >
+                {filteredTargetNodes.map(n => (
+                  <div
+                    key={n.id}
+                    style={{
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f0f8ff'
+                    }}
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      setTargetInput(n.label);
+                      setSelectedTargetNode(n);
+                      setTargetDropdown(false);
+                    }}
+                  >
+                    {n.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+        <button type="submit" disabled={loading} style={{ float: 'right', minWidth: 140 }}>
+          {loading ? 'Creating...' : 'Add Relation'}
+        </button>
       </form>
     </>
   );
