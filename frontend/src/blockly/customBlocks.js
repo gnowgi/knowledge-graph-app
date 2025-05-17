@@ -9,22 +9,113 @@ import * as BlocklyJavaScript from 'blockly/javascript';
 // --- Block Definitions ---
 
 Blockly.defineBlocksWithJsonArray([
-  // Proposition block
+
+  // --- Value Text Block ---
   {
-    "type": "proposition_block",
-    "message0": "Subject %1 Relation %2 Object %3",
+    "type": "value_text_block",
+    "message0": "%1",
     "args0": [
-      { "type": "field_input", "name": "SUBJECT", "text": "" },
-      { "type": "field_input", "name": "RELATION", "text": "" },
-      { "type": "field_input", "name": "OBJECT", "text": "" }
+      { "type": "field_input", "name": "VAL", "text": "value" }
     ],
-    "inputsInline": true,
-    "previousStatement": null,
-    "nextStatement": null,
-    "colour": 20,
-    "tooltip": "Proposition block (subject-relation-object).",
+    "output": "Value",
+    "colour": 160,
+    "tooltip": "Text value",
     "helpUrl": ""
   },
+
+  // --- Value Number Block ---
+  {
+    "type": "value_number_block",
+    "message0": "%1",
+    "args0": [
+      { "type": "field_number", "name": "VAL", "value": 0 }
+    ],
+    "output": "Value",
+    "colour": 180,
+    "tooltip": "Number value",
+    "helpUrl": ""
+  },
+
+  // --- Value Boolean Block ---
+  {
+    "type": "value_boolean_block",
+    "message0": "%1",
+    "args0": [
+      {
+        "type": "field_dropdown",
+        "name": "VAL",
+        "options": [
+          ["true", "true"],
+          ["false", "false"]
+        ]
+      }
+    ],
+    "output": "Value",
+    "colour": 200,
+    "tooltip": "Boolean value",
+    "helpUrl": ""
+  },
+
+  // --- Value Enum Block (takes comma-separated options via mutation/extension) ---
+  {
+    "type": "value_enum_block",
+    "message0": "%1",
+    "args0": [
+      {
+        "type": "field_dropdown",
+        "name": "VAL",
+        "options": [["(choose)", ""]]
+      }
+    ],
+    "output": "Value",
+    "colour": 220,
+    "tooltip": "Enum value",
+    "helpUrl": ""
+  },
+
+  // --- Value Date Block ---
+  {
+    "type": "value_date_block",
+    "message0": "%1",
+    "args0": [
+      { "type": "field_input", "name": "VAL", "text": "YYYY-MM-DD" }
+    ],
+    "output": "Value",
+    "colour": 240,
+    "tooltip": "Date value (ISO format: YYYY-MM-DD)",
+    "helpUrl": ""
+  }
+
+]);
+
+
+Blockly.defineBlocksWithJsonArray([
+  {
+    "type": "predicate_attribute_block",
+    "message0": "%1 : %2",
+    "args0": [
+      {
+        "type": "field_label_serializable",
+        "name": "ATTRIBUTE",
+        "text": "attribute"
+      },
+      {
+        "type": "input_value",
+        "name": "VALUE",
+        "check": "Value"
+      }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 120,
+    "tooltip": "Attribute assignment (relates node to value)",
+    "helpUrl": ""
+  }
+]);
+
+
+Blockly.defineBlocksWithJsonArray([
+  // Proposition block
 
   // Attribute block
 
@@ -46,33 +137,35 @@ Blockly.defineBlocksWithJsonArray([
     "helpUrl": ""
   },
 
-// {
-//   "type": "predicate_relation_block",
-//   "message0": "%1 %2",
-//   "args0": [
-//     { "type": "field_input", "name": "RELATION", "text": "relation" },
-//     { "type": "field_input", "name": "TARGET_NODE", "text": "target node" }
-//   ],
-//   "previousStatement": null,
-//   "nextStatement": null,
-//   "colour": 65,
-//   "tooltip": "Binary relation (relates to another node)",
-//   "helpUrl": ""
-// },
-{
-  "type": "predicate_attribute_block",
-  "message0": "%1 %2",
-  "args0": [
-    { "type": "field_input", "name": "ATTRIBUTE", "text": "attribute" },
-    { "type": "field_input", "name": "VALUE", "text": "value" }
-  ],
-  "previousStatement": null,
-  "nextStatement": null,
-  "colour": 120,
-  "tooltip": "Attribute assignment (relates to a value)",
-  "helpUrl": ""
-},
 
+  {
+    "type": "node_block",
+    "message0": "Node: %1 %2 %3",
+    "args0": [
+      {
+        "type": "field_dropdown",
+        "name": "QUANTIFIER",
+        "options": [
+          ["", ""],
+          ["all", "all"],
+          ["some", "some"],
+          ["no", "no"],
+          ["most", "most"]
+        ]
+      },
+      { "type": "field_input", "name": "QUALIFIER", "text": "" },
+      { "type": "field_input", "name": "TITLE", "text": "node title" }
+    ],
+    "output": "Node",
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 210,
+    "tooltip": "Node (with optional quantifier for moderate+ difficulty)",
+    "helpUrl": "",
+    "extensions": ["hide_quantifier_field"]
+  },
+
+  
 
   // Node block
   {
@@ -92,22 +185,94 @@ Blockly.defineBlocksWithJsonArray([
 ]);
 
 // --- Predicate Relation Block (value input for node) ---
-Blockly.Blocks['predicate_relation_block'] = {
-  init: function() {
-    this.appendDummyInput()
-      .appendField(new Blockly.FieldTextInput("relation"), "RELATION");
-    this.appendValueInput("TARGET_NODE")
-      .setCheck("Node")  // Only allow node_block!
-      .appendField("→");
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(65);
-    this.setTooltip("Binary relation (relates to another node)");
-    this.setHelpUrl("");
+
+Blockly.defineBlocksWithJsonArray([
+  {
+    "type": "predicate_relation_block",
+    "message0": "%1 → %2",
+    "args0": [
+      {
+        "type": "field_dropdown",
+        "name": "RELATION",
+        "options": [
+          ["", ""]
+          // Placeholder; fill dynamically or keep a few defaults
+        ]
+      },
+      {
+        "type": "input_value",
+        "name": "TARGET_NODE",
+        "check": "Node"
+      }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 65,
+    "tooltip": "Binary relation (relates to another node)",
+    "helpUrl": ""
   }
-};
+]);
+
+
+// Blockly.Blocks['predicate_relation_block'] = {
+//   init: function() {
+//     this.appendDummyInput()
+//       .appendField(new Blockly.FieldTextInput("relation"), "RELATION");
+//     this.appendValueInput("TARGET_NODE")
+//       .setCheck("Node")  // Only allow node_block!
+//       .appendField("→");
+//     this.setPreviousStatement(true, null);
+//     this.setNextStatement(true, null);
+//     this.setColour(65);
+//     this.setTooltip("Binary relation (relates to another node)");
+//     this.setHelpUrl("");
+//   }
+// };
+
+Blockly.Extensions.register('hide_quantifier_field', function() {
+  const quantifierField = this.getField('QUANTIFIER');
+  if (quantifierField) {
+    quantifierField.setVisible(false);
+  }
+  this.showQuantifier = function(show = false) {
+    if (quantifierField) {
+      quantifierField.setVisible(show);
+      this.render(); // update block display
+    }
+  };
+});
+
+
 
 // --- Code Generators ---
+
+// Make sure you import Blockly.JavaScript (or BlocklyJS) as in your project
+
+BlocklyJavaScript['value_text_block'] = function(block) {
+  const value = block.getFieldValue('VAL');
+  return [JSON.stringify(value), 0];
+};
+
+BlocklyJavaScript['value_number_block'] = function(block) {
+  const value = Number(block.getFieldValue('VAL'));
+  return [value, 0];
+};
+
+BlocklyJavaScript['value_boolean_block'] = function(block) {
+  const value = block.getFieldValue('VAL') === 'true';
+  return [value, 0];
+};
+
+BlocklyJavaScript['value_enum_block'] = function(block) {
+  const value = block.getFieldValue('VAL');
+  return [JSON.stringify(value), 0];
+};
+
+BlocklyJavaScript['value_date_block'] = function(block) {
+  const value = block.getFieldValue('VAL');
+  return [JSON.stringify(value), 0];
+};
+
 
 BlocklyJavaScript['node_block'] = function(block) {
   const qualifier = block.getFieldValue('QUALIFIER');
@@ -124,20 +289,14 @@ BlocklyJavaScript['predicate_relation_block'] = function(block) {
 
 BlocklyJavaScript['predicate_attribute_block'] = function(block) {
   const attribute = block.getFieldValue('ATTRIBUTE');
-  const value = block.getFieldValue('VALUE');
-  return JSON.stringify({ attribute, value }) + ';\n';
+  const value = Blockly.JavaScript.valueToCode(block, 'VALUE', Blockly.JavaScript.ORDER_ATOMIC);
+  // For a pure semantic triple, return as a JS object:
+  const prop = `{ attribute: ${JSON.stringify(attribute)}, value: ${value} }`;
+  return prop + ';\n';
 };
 
 
 
-
-BlocklyJavaScript['proposition_block'] = function(block) {
-  const subject = block.getFieldValue('SUBJECT');
-  const relation = block.getFieldValue('RELATION');
-  const object = block.getFieldValue('OBJECT');
-  const code = JSON.stringify({ subject, relation, object });
-  return code + ';\n';
-};
 
 BlocklyJavaScript['attribute_block'] = function(block) {
   const name = block.getFieldValue('NAME');
