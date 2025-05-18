@@ -22,7 +22,7 @@ Because scientific knowledge is best represented as *composable propositions*—
   “Isaac Newton -  member of → Human being, Scientist, Mathematician”
   appears as one grouped block.
 
-\[Image Placeholder]
+![Screenshot](./frontend/public/Learning-Studio-Screenshot.png)
 
 * **Custom Attribute Blocks:**
   Attribute values are input and displayed using fields that match their data type (number, boolean, enum, date, etc.), ensuring semantic correctness and clean data export.

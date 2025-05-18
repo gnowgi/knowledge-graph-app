@@ -518,7 +518,7 @@ function handlePropositionClick(proposition) {
 	</div>	    
  
       {/* Blockly area */}
-      <div style={{ height: '25vh' }}>
+      <div style={{ height: '50vh' }}>
         <xml id="blockly-toolbox" style={{ display: 'none' }}>
 
 	    <category name="Build" colour="230">
