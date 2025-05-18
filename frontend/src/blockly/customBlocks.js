@@ -9,6 +9,24 @@ import * as BlocklyJavaScript from 'blockly/javascript';
 // --- Block Definitions ---
 
 Blockly.defineBlocksWithJsonArray([
+  {
+    "type": "compose_node_block",
+    "message0": "Node: %1",
+    "args0": [
+      { "type": "input_value", "name": "NODE", "check": "Node" }
+    ],
+    "message1": "Predicates %1",
+    "args1": [
+      { "type": "input_statement", "name": "PREDICATES" } // stack of relation/attribute blocks
+    ],
+    "colour": 270,
+    "tooltip": "Compose all knowledge about a node",
+    "helpUrl": ""
+  }
+]);
+
+
+Blockly.defineBlocksWithJsonArray([
 
   // --- Value Text Block ---
   {
@@ -105,8 +123,8 @@ Blockly.defineBlocksWithJsonArray([
         "check": "Value"
       }
     ],
-    "previousStatement": null,
-    "nextStatement": null,
+    "previousStatement": "Predicate",
+    "nextStatement": "Predicate",
     "colour": 120,
     "tooltip": "Attribute assignment (relates node to value)",
     "helpUrl": ""
@@ -140,7 +158,9 @@ Blockly.defineBlocksWithJsonArray([
 
   {
     "type": "node_block",
-    "message0": "Node: %1 %2 %3",
+      "message0": "Node: %1 %2 %3",
+
+    
     "args0": [
       {
         "type": "field_dropdown",
@@ -156,6 +176,9 @@ Blockly.defineBlocksWithJsonArray([
       { "type": "field_input", "name": "QUALIFIER", "text": "" },
       { "type": "field_input", "name": "TITLE", "text": "node title" }
     ],
+      "args1": [
+	  { "type": "input_statement", "name": "PREDICATES", "check": "Predicate" }
+      ],
     "output": "Node",
     "previousStatement": null,
     "nextStatement": null,
@@ -205,29 +228,14 @@ Blockly.defineBlocksWithJsonArray([
         "check": "Node"
       }
     ],
-    "previousStatement": null,
-    "nextStatement": null,
+    "previousStatement": "Predicate",
+    "nextStatement": "Predicate",
     "colour": 65,
     "tooltip": "Binary relation (relates to another node)",
     "helpUrl": ""
   }
 ]);
 
-
-// Blockly.Blocks['predicate_relation_block'] = {
-//   init: function() {
-//     this.appendDummyInput()
-//       .appendField(new Blockly.FieldTextInput("relation"), "RELATION");
-//     this.appendValueInput("TARGET_NODE")
-//       .setCheck("Node")  // Only allow node_block!
-//       .appendField("→");
-//     this.setPreviousStatement(true, null);
-//     this.setNextStatement(true, null);
-//     this.setColour(65);
-//     this.setTooltip("Binary relation (relates to another node)");
-//     this.setHelpUrl("");
-//   }
-// };
 
 Blockly.Extensions.register('hide_quantifier_field', function() {
   const quantifierField = this.getField('QUANTIFIER');
@@ -310,6 +318,42 @@ BlocklyJavaScript['attribute_block'] = function(block) {
   });
   return code + ';\n';
 };
+
+
+BlocklyJavaScript['compose_node_block'] = function(block) {
+  // 1. Generate code for the NODE input (should return node label/title)
+  const node = BlocklyJS.valueToCode(block, 'NODE', BlocklyJS.ORDER_ATOMIC);
+
+  // 2. Generate code for the stacked predicates
+  const predicates = BlocklyJS.statementToCode(block, 'PREDICATES');
+
+  // 3. Output as a single JS object (or adapt to your backend/export needs)
+  // You might want an object like:
+  // { node: ..., predicates: [ ... ] }
+  // But because predicate blocks may each generate a semicolon-ended string, we'll collect as an array
+
+  // Remove trailing semicolons and split into an array
+  const predicateArray = predicates
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line && line !== ';' && line !== 'undefined;')
+    .map(line => line.endsWith(';') ? line.slice(0, -1) : line);
+
+  // Compose the JS/JSON object
+  const code = `
+{
+  node: ${node},
+  predicates: [
+    ${predicateArray.join(',\n    ')}
+  ]
+}
+  `;
+
+  // If this is meant to be a statement block, return code + newline;
+  // if output, use: return [code, BlocklyJS.ORDER_ATOMIC];
+  return code + ';\n';
+};
+
 
 
 // --- Exported helpers (implement as needed) ---

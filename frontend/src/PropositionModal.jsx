@@ -250,15 +250,40 @@ export default function PropositionModal({
   onClick={async () => {
     setIsSubmitting(true);
     try {
+      // 1. Find or create the subject node
       const subjectNodeObj = await getOrCreateNode(attributeSubject, nodes, setNodes);
 
-      await injectAttributeTemplate({
-        subjectNode: subjectNodeObj,
-        attribute,
-        attributeTypes,
-        value: attributeValue
+      // 2. Find the attribute type object by name
+      const attributeTypeObj = attributeTypes.find(a => a.name === attribute);
+
+      if (!attributeTypeObj) {
+        alert('Selected attribute not found.');
+        return;
+      }
+
+      // 3. POST to the backend to set the attribute value
+      const res = await fetch(`/api/node/${subjectNodeObj.id}/attribute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attribute_id: attributeTypeObj.id,
+          value: attributeValue,
+          quantifier: '' // Add if you use quantifiers for attributes
+        })
       });
-      onClose();
+      const data = await res.json();
+      if (res.ok) {
+        // Optionally, show success or update UI
+        injectAttributeTemplate({
+          subjectNode: subjectNodeObj,
+          attribute,
+          attributeTypes,
+          value: attributeValue
+        });
+        onClose();
+      } else {
+        alert(data.error || 'Failed to set attribute');
+      }
     } catch (err) {
       alert('Error creating attribute proposition: ' + err.message);
       console.error(err);
@@ -266,7 +291,9 @@ export default function PropositionModal({
       setIsSubmitting(false);
     }
   }}
->Insert Attribute Proposition</button>
+>
+  Insert Attribute Proposition
+</button>
 
 
           </div>
