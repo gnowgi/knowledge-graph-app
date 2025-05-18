@@ -155,45 +155,12 @@ Blockly.defineBlocksWithJsonArray([
     "helpUrl": ""
   },
 
-
-  {
-    "type": "node_block",
-      "message0": "Node: %1 %2 %3",
-
-    
-    "args0": [
-      {
-        "type": "field_dropdown",
-        "name": "QUANTIFIER",
-        "options": [
-          ["", ""],
-          ["all", "all"],
-          ["some", "some"],
-          ["no", "no"],
-          ["most", "most"]
-        ]
-      },
-      { "type": "field_input", "name": "QUALIFIER", "text": "" },
-      { "type": "field_input", "name": "TITLE", "text": "node title" }
-    ],
-      "args1": [
-	  { "type": "input_statement", "name": "PREDICATES", "check": "Predicate" }
-      ],
-    "output": "Node",
-    "previousStatement": null,
-    "nextStatement": null,
-    "colour": 210,
-    "tooltip": "Node (with optional quantifier for moderate+ difficulty)",
-    "helpUrl": "",
-    "extensions": ["hide_quantifier_field"]
-  },
-
   
 
   // Node block
   {
     "type": "node_block",
-    "message0": "Node: %1 %2",
+    "message0": "%1 %2",
     "args0": [
       { "type": "field_input", "name": "QUALIFIER", "text": "" },
       { "type": "field_input", "name": "TITLE", "text": "node title" }
@@ -318,6 +285,7 @@ BlocklyJavaScript['attribute_block'] = function(block) {
   });
   return code + ';\n';
 };
+
 
 
 BlocklyJavaScript['compose_node_block'] = function(block) {

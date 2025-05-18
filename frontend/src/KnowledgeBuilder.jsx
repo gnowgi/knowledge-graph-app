@@ -110,47 +110,63 @@ function injectComposeNodeFromApi(node, neighbors, attributes, attributeTypes) {
 
   // 3. Stack all outgoing relations
   let previousPredicateBlock = null;
-  for (const link of neighbors.links) {
-    // Find target node in neighbors.nodes
-    const targetNode = neighbors.nodes.find(n => n.id === link.target);
-      if (!targetNode) continue;
-      const relType = relationTypes.find(rt => rt.id === link.relation_type_id || rt.name === link.label);
-      const relName = link.label || relType?.name;
-    const relBlock = workspace.newBlock('predicate_relation_block');
-  
-    relBlock.initSvg();
-    relBlock.render();
-      const relationField = relBlock.getField('RELATION');
-      if (relationField) {
-	  // Make sure all relation names are in the dropdown
-	  relationField.menuGenerator_ = relationTypes.map(rt => [rt.name, rt.name]);
-	  if (!relationTypes.some(rt => rt.name === relName)) {
-	      relationField.menuGenerator_.push([relName, relName]);
-	  }
-	  relationField.setValue(relName);
+    const groupedRelations = {};
+      for (const link of neighbors.links) {
+	  const relName = link.label;
+	  if (!groupedRelations[relName]) groupedRelations[relName] = [];
+	  groupedRelations[relName].push(link.target);
       }
-    // Plug in target node as object
+
+for (const [relName, targetIds] of Object.entries(groupedRelations)) {
+  const relBlock = workspace.newBlock('predicate_relation_block');
+  relBlock.initSvg();
+  relBlock.render();
+
+  const relationField = relBlock.getField('RELATION');
+  if (relationField) {
+    relationField.menuGenerator_ = relationTypes.map(rt => [rt.name, rt.name]);
+    if (!relationTypes.some(rt => rt.name === relName)) {
+      relationField.menuGenerator_.push([relName, relName]);
+    }
+    relationField.setValue(relName);
+  }
+
+  // Plug in all target nodes
+  targetIds.forEach((targetId, idx) => {
+    const targetNode = neighbors.nodes.find(n => n.id === targetId);
+    if (!targetNode) return;
     const objBlock = workspace.newBlock('node_block');
     objBlock.setFieldValue(targetNode.qualifier || '', 'QUALIFIER');
     objBlock.setFieldValue(targetNode.label || targetNode.title, 'TITLE');
     objBlock.initSvg();
     objBlock.render();
-    const targetInput = relBlock.getInput('TARGET_NODE');
-    if (targetInput && targetInput.connection && objBlock.outputConnection)
-      targetInput.connection.connect(objBlock.outputConnection);
-
-    // Chain into stack
-    if (!previousPredicateBlock) {
-      const predInput = composeBlock.getInput('PREDICATES');
-      if (predInput && predInput.connection && relBlock.previousConnection)
-        predInput.connection.connect(relBlock.previousConnection);
-    } else {
-      if (previousPredicateBlock.nextConnection && relBlock.previousConnection)
-        previousPredicateBlock.nextConnection.connect(relBlock.previousConnection);
+    // Input names: "TARGET_NODE", "TARGET_NODE2", etc.
+    const inputName = idx === 0 ? 'TARGET_NODE' : `TARGET_NODE${idx+1}`;
+    // Make sure input exists (if block defines them)
+    let targetInput = relBlock.getInput(inputName);
+    if (!targetInput && idx > 0) {
+      // If your block allows, dynamically add the input (for up to your defined max)
+      relBlock.appendValueInput(inputName).setCheck('Node');
+      targetInput = relBlock.getInput(inputName);
     }
-    previousPredicateBlock = relBlock;
-  }
+    if (targetInput && targetInput.connection && objBlock.outputConnection) {
+      targetInput.connection.connect(objBlock.outputConnection);
+    }
+  });
 
+  // Chain into stack (as before)
+  if (!previousPredicateBlock) {
+    const predInput = composeBlock.getInput('PREDICATES');
+    if (predInput && predInput.connection && relBlock.previousConnection)
+      predInput.connection.connect(relBlock.previousConnection);
+  } else {
+    if (previousPredicateBlock.nextConnection && relBlock.previousConnection)
+      previousPredicateBlock.nextConnection.connect(relBlock.previousConnection);
+  }
+  previousPredicateBlock = relBlock;
+}
+
+   
   // 4. Stack all attributes
   for (const a of attributes) {
     const attrType = attributeTypes.find(at => at.id === a.attribute_id);
@@ -500,9 +516,6 @@ function handlePropositionClick(proposition) {
 
 
 	</div>	    
-      <div style={{ padding: '10px', borderBottom: '1px solid #ccc' }}>
-        <button onClick={handleSubmit}>Submit Proposition</button>
-      </div>
  
       {/* Blockly area */}
       <div style={{ height: '25vh' }}>
