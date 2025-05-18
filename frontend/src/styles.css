@@ -146,3 +146,26 @@ hr {
   border-top: 1px solid #ddd;
   margin: 12px 0;
 }
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+  width: 100%;
+}
+
+.workspace {
+  overflow: hidden; /* Prevent scrollbars in Blockly */
+}
+
+.handle {
+  height: 5px;
+  background: #888;
+  cursor: ns-resize;
+  width: 100%;
+}
+
+.canvas {
+  flex-grow: 1; /* Ensure canvas takes remaining space */
+  border-top: 1px solid #888;
+}
