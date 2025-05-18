@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 
 export default function PropositionModal({
-  nodes,
-  relationTypes,
-  attributeTypes,
-  injectPropositionTemplate,
-  injectAttributeTemplate,
-  setNodes,
-  onClose
+    nodes,
+    relationTypes,
+    attributeTypes,
+    injectPropositionTemplate,
+    injectAttributeTemplate,
+    setNodes,
+    onClose,
+    handleSubmit
 }) {
   attributeTypes = attributeTypes || [];
 
@@ -145,6 +146,13 @@ export default function PropositionModal({
                 }
               }}
             >Insert Relation Proposition</button>
+	      <button
+		  style={{ marginLeft: '1em' }}
+		  onClick={handleSubmit}
+	      >
+		  Submit Proposition to Backend
+	      </button>
+
           </div>
         </>
       )}

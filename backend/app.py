@@ -17,27 +17,27 @@ openai.api_key = config.OPENAI_API_KEY
 DB_PATH=config.DB_PATH
 
 
-@app.route("/api/node/create", methods=["POST"])
-def create_node():
-    data = request.get_json()
-    title = data["title"].strip()
-    normalized_title = title.lower()
+# @app.route("/api/node/create", methods=["POST"])
+# def create_node():
+#     data = request.get_json()
+#     title = data["title"].strip()
+#     normalized_title = title.lower()
 
-    conn = sqlite3.connect(config.DB_PATH)
-    cur = conn.cursor()
+#     conn = sqlite3.connect(config.DB_PATH)
+#     cur = conn.cursor()
 
-    cur.execute("SELECT id FROM nodes WHERE LOWER(title) = ?", (normalized_title,))
-    if cur.fetchone():
-        conn.close()
-        return jsonify({"error": "Node with this title already exists."}), 409
+#     cur.execute("SELECT id FROM nodes WHERE LOWER(title) = ?", (normalized_title,))
+#     if cur.fetchone():
+#         conn.close()
+#         return jsonify({"error": "Node with this title already exists."}), 409
 
-    summary = generate_summary(title)
-    cur.execute("INSERT INTO nodes (title, summary) VALUES (?, ?)", (title, summary))
-    node_id = cur.lastrowid
-    conn.commit()
-    conn.close()
+#     summary = generate_summary(title)
+#     cur.execute("INSERT INTO nodes (title, summary) VALUES (?, ?)", (title, summary))
+#     node_id = cur.lastrowid
+#     conn.commit()
+#     conn.close()
 
-    return jsonify({"id": node_id, "label": title, "summary": summary})
+#     return jsonify({"id": node_id, "label": title, "summary": summary})
 
 
 @app.route("/api/nodes", methods=["GET"])
@@ -198,46 +198,33 @@ def list_relation_types():
 
 
 
-# @app.route("/api/relation/create", methods=["POST"])
-# def create_relation():
-#     data = request.get_json()
-#     source = data["source"]
-#     target = data["target"]
-#     relation_name = data["relation"].strip()
-#     is_symmetric = int(data.get("symmetric", False))
-#     is_transitive = int(data.get("transitive", False))
-
-#     conn = sqlite3.connect(config.DB_PATH)
-#     cur = conn.cursor()
-
-#     # Check if this relation_type already exists
-#     cur.execute("SELECT id FROM relation_types WHERE name=?", (relation_name,))
-#     row = cur.fetchone()
-
-#     if row:
-#         relation_type_id = row[0]
-#     else:
-#         cur.execute(
-#             "INSERT INTO relation_types (name, is_symmetric, is_transitive) VALUES (?, ?, ?)",
-#             (relation_name, is_symmetric, is_transitive)
-#         )
-#         relation_type_id = cur.lastrowid
-
-#     # Insert the relation
-#     cur.execute(
-#         "INSERT INTO relations (source_page_id, target_page_id, relation_type_id) VALUES (?, ?, ?)",
-#         (source, target, relation_type_id)
-#     )
-
-#     conn.commit()
-#     conn.close()
-
-#     return jsonify({"success": True})
-
 def normalize_relation_name(name):
     stopwords = {"is", "an", "a", "the"}
     tokens = [w for w in name.lower().split() if w not in stopwords]
     return " ".join(tokens)
+
+@app.route('/api/node/create', methods=['POST'])
+def create_node():
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    if not title:
+        return jsonify({'error': 'Title required'}), 400
+
+    conn = sqlite3.connect(config.DB_PATH)
+    cur = conn.cursor()
+
+    # Check if node already exists
+    cur.execute("SELECT id FROM nodes WHERE LOWER(title) = LOWER(?)", (title,))
+    row = cur.fetchone()
+    if row:
+        node_id = row[0]
+    else:
+        cur.execute("INSERT INTO nodes (title) VALUES (?)", (title,))
+        node_id = cur.lastrowid
+        conn.commit()
+
+    conn.close()
+    return jsonify({"id": node_id, "title": title})
 
 @app.route("/api/relation/create", methods=["POST"])
 def create_relation():
@@ -245,31 +232,30 @@ def create_relation():
     source = data["source"]
     target = data["target"]
     relation_type_id = data["relation_id"]
-    modality = data.get("modality")
-    subject_quantifier = data.get("subject_quantifier")
-    object_quantifier = data.get("object_quantifier")
 
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
 
-    # Get the relation type name
-    cur.execute("SELECT name FROM relation_types WHERE id=?", (relation_type_id,))
-    row = cur.fetchone()
-    rel_name = row[0] if row else ""
-
-    # Insert the relation with new fields
+    # Check for duplicate
     cur.execute("""
-        INSERT INTO relations (source_node_id, target_node_id, relation_type_id, modality, subject_quantifier, object_quantifier)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (source, target, relation_type_id, modality, subject_quantifier, object_quantifier))
+        SELECT id FROM relations
+        WHERE source_node_id = ? AND target_node_id = ? AND relation_type_id = ?
+    """, (source, target, relation_type_id))
+    row = cur.fetchone()
+    if row:
+        conn.close()
+        return jsonify({"message": "Relation already exists", "id": row[0]})
 
-    # Normalize and check for 'instance of' relation
-    if normalize_relation_name(rel_name) == "instance of":
-        cur.execute("UPDATE nodes SET is_instance=1 WHERE id=?", (source,))
-
+    # Insert new relation
+    cur.execute("""
+        INSERT INTO relations (source_node_id, target_node_id, relation_type_id)
+        VALUES (?, ?, ?)
+    """, (source, target, relation_type_id))
+    rel_id = cur.lastrowid
     conn.commit()
     conn.close()
-    return jsonify({"success": True})
+
+    return jsonify({"success": True, "id": rel_id})
 
 
 @app.route("/api/relation/<int:relation_id>", methods=["DELETE"])

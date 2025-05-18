@@ -7,6 +7,7 @@ import PropertyCreator from './PropertyCreator';
 import NodeManager from './NodeManager'; // 
 import KnowledgeBuilder from './KnowledgeBuilder';
 
+
 export default function App() {
   const [tab, setTab] = useState("map");
   const [relationRefreshKey, setRelationRefreshKey] = useState(0);
@@ -18,7 +19,7 @@ export default function App() {
       <div className="app-header" style={{ justifyContent: 'flex-start', paddingLeft: 32 }}>
         <img
           src="https://www.gnu.org/software/gnowsys/gnowsys-logo-revised-small.png"
-          alt="Knowledge Builder Logo"
+          alt="Learning Studio Logo"
           className="app-header-logo"
           style={{ cursor: 'pointer' }}
           onClick={() => window.location.reload()}
@@ -28,7 +29,7 @@ export default function App() {
           style={{ cursor: 'pointer', marginLeft: 8 }}
           onClick={() => window.location.reload()}
         >
-          Knowledge Network
+          Learning Studio
         </h1>
       </div>
 
